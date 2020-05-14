@@ -1,0 +1,6 @@
+{
+    'user' : [
+        'sys.exit(app.exec_())',
+        'setContentsMargins'
+    ]
+}
