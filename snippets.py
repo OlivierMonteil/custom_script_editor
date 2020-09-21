@@ -19,7 +19,7 @@ except ImportError:
 
 try:
     import maya.cmds as mc
-    import maya.mel as mel
+    from maya import mel
     import maya.OpenMayaUI as OMUI
 except:
     pass
@@ -68,7 +68,6 @@ class SnippetsHandler(QtCore.QObject):
 
         script_editor_popup_menus = mel.eval("$toto = $gCommandPopupMenus;")
 
-        toto = [menu for menu in script_editor_popup_menus if form_lay in menu]
         popup_menu = [menu for menu in script_editor_popup_menus if form_lay in menu][0]
         return popup_menu +'|CustomMenu|SnippetBox'
     #--------------------------------------------------------------------------
@@ -77,6 +76,9 @@ class SnippetsHandler(QtCore.QObject):
         # (when menuItem is not visible?), so we have to get menuItem as QAction
         # to get the right result!
         ptr = OMUI.MQtUtil.findMenuItem(self.snippets_box)
+        if not ptr:
+            return False
+            
         qt_box = shiboken.wrapInstance(long(ptr), QtWidgets.QAction)
         return qt_box.isChecked()
     #--------------------------------------------------------------------------

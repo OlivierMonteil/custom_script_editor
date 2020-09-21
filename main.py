@@ -1,12 +1,11 @@
-###############################################################################
-#       Script for customizing Maya's script editor hightlights and hotkeys.
-###############################################################################
+"""
+Script for customizing Maya's script editor hightlights and hotkeys.
+"""
 
 __author__ = 'Olivier Monteil'
 __version__ = 1.1
 __ide_version__ = 'Atom'
 
-import sys
 import re
 
 try:
@@ -17,7 +16,7 @@ except ImportError:
 
 try:
     import maya.cmds as mc
-    import maya.mel as mel
+    from maya import mel
     import maya.OpenMayaUI as OMUI
 except:
     pass
@@ -31,14 +30,10 @@ from tools import menu as tools_menu
 import syntax_highlight
 import keys
 import snippets
+import palette
 
-reload(tools_menu)
-reload(syntax_highlight)
-reload(keys)
-reload(snippets)
+VALID_TABS_REGEX = ['MEL', 'Python', '[\w\-_]+(.py)$']
 
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
 
 class ScriptEditorDetector(QtCore.QObject):
 
@@ -50,7 +45,6 @@ class ScriptEditorDetector(QtCore.QObject):
     def __init__(self, parent=None):
         super(ScriptEditorDetector, self).__init__(parent)
 
-    #--------------------------------------------------------------------------
     def eventFilter(self, obj, event):
         # (no need to run set_customize_on_tab_change and customize_script_editor
         # if the Script Editor is already opened)
@@ -64,23 +58,29 @@ class ScriptEditorDetector(QtCore.QObject):
 
         return False
 
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
 
 def script_editor_opened():
     return True if get_script_editor() else False
-#------------------------------------------------------------------------------
+
 def get_script_editor():
+    """
+    Returns:
+        (QtWidgets.QWidget)
+
+    Gets the Script Editor window.
+    """
+
     app = QtWidgets.QApplication.instance()
     for widget in app.topLevelWidgets():
         if widget.windowTitle() == 'Script Editor':
             return widget
-#------------------------------------------------------------------------------
+
 def set_customize_on_tab_change():
-    # connect ScriptEditor > QTabWidget.currentChanged signal to customize_script_editor
-    #  --> used to customize all new created tabs, because this signal is
-    #      called after each tab creation when the Script Editor automatically
-    #      focuses on the new tab
+    """
+    Connect ScriptEditor > QTabWidget.currentChanged signal to customize_script_editor().
+    Used to customize new created tabs, as this signal is called after each tab
+    creation.
+    """
 
     tabsLay = get_scripts_tab_lay()
     if not tabsLay:
@@ -90,12 +90,32 @@ def set_customize_on_tab_change():
     qtLay = shiboken.wrapInstance(long(ptr), QtWidgets.QWidget)
 
     for child in qtLay.children():
-        if child.__class__.__name__ == 'QTabWidget':
+        if isinstance(child, QtWidgets.QTabWidget):
             child.currentChanged.connect(customize_script_editor)
             break
-#------------------------------------------------------------------------------
+
+def get_logs_text_edit():
+    """
+    Returns:
+         (QTextEdit)
+
+    Get logs QTextEdit from Script Editor panel.
+    """
+
+    script_editor = get_script_editor()
+    text_edits = get_text_edits(script_editor)
+
+    for te in text_edits:
+        if 'cmdScrollFieldReporter1' in te.objectName():
+            return te
+
 def get_text_edits(widget):
-    # get all QTextEdit found into widget's children
+    """
+    Args:
+        widget (QWidget)
+
+    Get all QTextEdit found into widget's children.
+    """
 
     found = []
     for child in widget.children() or ():
@@ -105,19 +125,24 @@ def get_text_edits(widget):
         found.extend(get_text_edits(child))
 
     return found
-#------------------------------------------------------------------------------
+
 def get_scripts_tab_lay():
-    # get Script Editor's tabLayout (detected by the presence of "MEL" and "Python" tabs)
+    """
+    Returns:
+        (str or None) : tabLayout
+
+    Get Script Editor's tabLayout that is holding script tabs (not the "Quick Help" one).
+    """
 
     # get scriptEditor panel if exists
     try:
         panels = mc.lsUI(panels=True)
     except:
-        return
+        return None
 
     script_editor = [p for p in panels if 'scriptEditor' in p]
     if not script_editor:
-        return
+        return None
 
     # get all tablayouts that have scriptEditor as parent
     se_tabs = [lay for lay in mc.lsUI(type='tabLayout') \
@@ -127,43 +152,52 @@ def get_scripts_tab_lay():
     # (there may be also the 'Quick Help' tablayout)
     for lay in se_tabs or ():
         tabs = mc.tabLayout(lay, q=True, tabLabel=True)
-        if all(x in ['MEL', 'Python'] for x in tabs):
+        if all(is_valid_tab_name(x) for x in tabs):
             return lay
-#------------------------------------------------------------------------------
-def child_class_needed(widget, className):
-    # detect whether <className> exists in widget's children or not
-    # (used to detect if eventFilters or SynthaxHighlighters or installed on widget)
 
-    for w in widget.children():
-        if w.__class__.__name__ == className:
+def child_class_needed(widget, target_class):
+    """
+    Args:
+        widget (QWidget)
+        target_class (class)
+
+    Returns:
+        (bool)
+
+    Check whether <target_class> is found in <widget>'s children or not.
+    (used to detect if eventFilters or SynthaxHighlighters are installed on widget)
+    """
+
+    for child in widget.children():
+        if isinstance(child, target_class):
             return False
     return True
-#------------------------------------------------------------------------------
+
 def script_tools_menu(menu):
-    # (called on Custom Menu > Script Tools menu added into add_custom_menus func)
+    """ Run "Script Tools" menu. """
 
-    try:
-        pos = QtGui.QCursor().pos()
-        tools_menu.run(pos)
-    except:
-        mc.warning('Could not import tools/menu.py')
-#------------------------------------------------------------------------------
+    pos = QtGui.QCursor().pos()
+    tools_menu.run(pos)
+
 def palette_editor_menu(menu):
-    # (called on Custom Menu > Script Tools menu added into add_custom_menus func)
+    """ Run "set palette..." menu. """
 
-    try:
-        pos = QtGui.QCursor().pos()
-        tools_menu.run(pos)
-    except:
-        mc.warning('Could not import tools/menu.py')
-#------------------------------------------------------------------------------
+    print '// "set palette..." not Implemented yet.'
+
 def remove_maya_highlight(widget):
+    """
+    Args:
+        widget (QWidget)
+
+    Remove QtGui.QSyntaxHighlighter from <widget>.
+    """
+
     for syntax_hl in widget.findChildren(QtGui.QSyntaxHighlighter):
         syntax_hl.setDocument(None)
-        # child.deleteLater()
-        # del syntax_hl
-#-----------------------------------------------------------------------------
+
 def add_custom_menus():
+    """ Add custom menus to the Script Editor's tabs hotbox menu. """
+
     se_popup_menus = mel.eval("$toto = $gCommandPopupMenus;")
 
     for menu in se_popup_menus:
@@ -176,13 +210,35 @@ def add_custom_menus():
         mc.menuItem('SnippetBox', p=main_menu, radialPosition="S",
                                  label='Snippets', checkBox=True)
         mc.menuItem('ScriptTools', p=main_menu, radialPosition="W",
-                                 label='Script Tools', command=lambda *args: script_tools_menu(menu))
+                                 label='Script Tools', command=script_tools_menu)
         mc.menuItem('PaletteSetter', p=main_menu, radialPosition="E",
-                                 label='set palette...', command=lambda *args: palette_editor_menu(menu))
-#------------------------------------------------------------------------------
+                                 label='set palette...', command=palette_editor_menu)
+
+def is_valid_tab_name(name, exlude_mel=False):
+    """
+    Args:
+        name (str)
+        exlude_mel (bool, optional)
+
+    Returns:
+        (bool)
+    """
+
+    tabs_regex = VALID_TABS_REGEX[1:] if exlude_mel else VALID_TABS_REGEX
+    return True if any(re.match(regex, name) for regex in tabs_regex) else False
+
 def customize_script_editor(*args):
-    # iterate every tab from ScriptEditor's TabWidget to check if the PythonHighlighter,
-    # KeysHandler and SnippetsHandler are to be installed on it
+    """
+    Iterate every tab from Script Editor and apply PythonHighlighter,
+    KeysHandler and SnippetsHandler if required.
+    """
+
+    log_field = get_logs_text_edit()
+    if log_field and child_class_needed(log_field, syntax_highlight.LogHighlighter):
+        remove_maya_highlight(log_field)      # remove maya's default QSyntaxHighlighter
+        highlight = syntax_highlight.LogHighlighter(log_field)
+
+        mc.evalDeferred(highlight.rehighlight, lp=True)
 
     se_tab_lay = get_scripts_tab_lay()
     if not se_tab_lay:
@@ -194,45 +250,42 @@ def customize_script_editor(*args):
 
     for i, form_lay in enumerate(tabs) or ():
         # do not apply PythonHighlighter on MEL tabs
-        apply_highlight = True if labels[i] == 'Python' else False
+        is_mel_tab = False if is_valid_tab_name(labels[i], exlude_mel=True) else True
 
         ptr = OMUI.MQtUtil.findControl(form_lay)
         widget = shiboken.wrapInstance(long(ptr), QtWidgets.QWidget)
         text_edits = get_text_edits(widget)
 
-        # do not edit "MEL" tabs for now
-        if not apply_highlight:
-            continue
-
         for t in text_edits or ():
             try:
-                # add PythonHighlighter on QTextEdit if not already added
-                if child_class_needed(t, 'PythonHighlighter') and apply_highlight:
-                    remove_maya_highlight(t)      # remove maya's default QSyntaxHighlighter
-                    # set stylesheet with object name (will not be applied on children)
-                    style_body  = 'QTextEdit#' +t.objectName() +'{\n'
-                    style_body += '    color: rgb(170, 176, 190);\n'
-                    style_body += '    background : rgb(29, 34, 46);\n}'
-                    style_body += '    background : rgb(29, 34, 46);\n}'
-                    t.setStyleSheet(style_body)
-                    highlight = syntax_highlight.PythonHighlighter(t)
+
+                if is_mel_tab:
+                    # add PythonHighlighter on QTextEdit if not already added
+                    if child_class_needed(t, syntax_highlight.MelHighlighter):
+                        remove_maya_highlight(t)      # remove maya's default QSyntaxHighlighter
+                        highlight = syntax_highlight.MelHighlighter(t)
+                else:
+                    # add PythonHighlighter on QTextEdit if not already added
+                    if child_class_needed(t, syntax_highlight.PythonHighlighter):
+                        remove_maya_highlight(t)      # remove maya's default QSyntaxHighlighter
+                        highlight = syntax_highlight.PythonHighlighter(t)
 
                 # install KeysHandler filterEvent on QTextEdit if not already installed
-                if child_class_needed(t, 'KeysHandler'):
-                    key_handle = keys.KeysHandler(parent=t)
+                if child_class_needed(t, keys.KeysHandler):
+                    tab_type = 'MEL' if is_mel_tab else 'Python'
+                    key_handle = keys.KeysHandler(tab_type, parent=t)
                     t.installEventFilter(key_handle)
 
-                # install KeysHandler filterEvent on QTextEdit if not already installed
-                if child_class_needed(t, 'SnippetsHandler'):
+                # install SnippetsHandler filterEvent on QTextEdit if not already installed
+                if child_class_needed(t, snippets.SnippetsHandler):
                     snippets_handle = snippets.SnippetsHandler(t, form_lay)
                     t.installEventFilter(snippets_handle)
 
             except Exception as e:
-                print ('in customize_script_editor', e)
+                print 'in customize_script_editor', e
 
     add_custom_menus()
 
-#------------------------------------------------------------------------------
 
 def run():
     """
@@ -246,7 +299,7 @@ def run():
     maya_ui_qt = shiboken.wrapInstance(long(maya_ui), QtWidgets.QWidget)
 
     # install ScriptEditorDetector event filter on Maya window if not already
-    if child_class_needed(maya_ui_qt, 'ScriptEditorDetector'):
+    if child_class_needed(maya_ui_qt, ScriptEditorDetector):
         ui_filter = ScriptEditorDetector(parent=maya_ui_qt)
         maya_ui_qt.installEventFilter(ui_filter)
 
@@ -254,64 +307,7 @@ def run():
     # signal to customize_script_editor. This will allow to customize all new created tabs,
     # because this signal is called after each tab creation when the Script Editor
     # automatically focuses on the new tab
+
     if script_editor_opened():
-        customize_script_editor()
-        set_customize_on_tab_change()
-
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
-
-class TestWindow(QtWidgets.QMainWindow):
-    def __init__(self, parent):
-        super(TestWindow, self).__init__()
-
-        self.setCentralWidget(QtWidgets.QWidget())
-        lay = QtWidgets.QVBoxLayout(self.centralWidget())
-
-        self.field = QtWidgets.QTextEdit()
-        self.field.setObjectName('TESTFIELD')
-
-        lay.addWidget(self.field)
-
-        self.set_highlight()
-
-        self.resize(500, 600)
-
-    def set_highlight(self):
-        import custom_script_editor
-        import importlib
-
-        importlib.reload(custom_script_editor)
-        custom_script_editor.remove_maya_highlight(self.field)
-
-        style_body  = 'QTextEdit#' +self.field.objectName() +'{\n'
-        style_body += '    color: rgb(170, 176, 190);\n'
-        style_body += '    background : rgb(29, 34, 46);\n}'
-        self.field.setStyleSheet(style_body)
-        highlight = custom_script_editor.PythonHighlighter(self.field)
-
-        keyHandle = KeysHandler(parent=self.field)
-        self.field.installEventFilter(keyHandle)
-
-#------------------------------------------------------------------------------
-
-def test(parent=None):
-    import sys
-
-    try:
-        app = QtWidgets.QApplication(sys.argv)
-
-        window = TestWindow(parent)
-        window.show()
-
-        sys.exit(app.exec_())
-    except:
-        window = TestWindow(parent)
-        window.show()
-
-    return window
-
-#------------------------------------------------------------------------------
-
-if __name__ == '__main__':
-    test()
+        mc.evalDeferred(customize_script_editor, lp=True)
+        mc.evalDeferred(set_customize_on_tab_change, lp=True)

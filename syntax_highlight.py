@@ -1,219 +1,175 @@
-###############################################################################
-#           Script for customizing Maya's script editor hightlights.
-###############################################################################
-
-__author__ = 'Olivier Monteil'
-__version__ = 1.1
-__ide_version__ = 'Atom'
+"""
+Script for customizing Maya's script editor hightlights.
+"""
 
 import re
 
 try:
-    from PySide2 import QtWidgets, QtCore, QtGui
+    from PySide2 import QtCore, QtGui
 except ImportError:
     from PySide import QtGui, QtCore
-    from PySide import QtGui as QtWidgets
 
-TRIPLE_QUOTES = ["'''", '"""']
-TRIPLE_STATES = [2, 3]
-SINGLE_QUOTES = ["'", '"']
-SINGLE_STATES = [0, 1]
-
-#------------------------------------------------------------------------------
-
-def char_format(rgb, style=''):
-    # return a QtGui.QTextCharFormat with the given attributes (color, font weigth...etc)
-
-    if isinstance(rgb, tuple):
-        color = QtGui.QColor(*rgb)
-    else:
-        color = QtGui.QColor()
-        color.setNamedColor(rgb)
-
-    c_format = QtGui.QTextCharFormat()
-    c_format.setForeground(color)
-    if 'bold' in style:
-        c_format.setFontWeight(QtGui.QFont.Bold)
-    if 'italic' in style:
-        c_format.setFontItalic(True)
-
-    return c_format
-
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
-
-class PythonHighlighter (QtGui.QSyntaxHighlighter):
-    """
-    Syntax highlighter for the Python language (colors from Atom editor).
-    """
-
-    # python keywords
-    keywords = ['and', 'as', 'assert', 'async', 'await', 'break', 'class',
-                'continue', 'def', 'del', 'elif', 'else', 'except', 'finally',
-                'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda',
-                'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try',
-                'while', 'with', 'yield']
-
-    builtins_words = ['ArithmeticError', 'AssertionError', 'AttributeError',
-                     'BaseException', 'BlockingIOError', 'BrokenPipeError',
-                     'BufferError', 'BytesWarning', 'ChildProcessError',
-                     'ConnectionAbortedError', 'ConnectionError',
-                     'ConnectionRefusedError', 'ConnectionResetError',
-                     'DeprecationWarning', 'EOFError', 'Ellipsis',
-                     'EnvironmentError', 'Exception', 'FileExistsError',
-                     'FileNotFoundError', 'FloatingPointError', 'FutureWarning',
-                     'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning',
-                     'IndentationError', 'IndexError', 'InterruptedError',
-                     'IsADirectoryError', 'KeyError', 'KeyboardInterrupt',
-                     'LookupError', 'MemoryError', 'ModuleNotFoundError',
-                     'NameError', 'NotADirectoryError', 'NotImplemented',
-                     'NotImplementedError', 'OSError', 'OverflowError',
-                     'PendingDeprecationWarning', 'PermissionError',
-                     'ProcessLookupError', 'RecursionError', 'ReferenceError',
-                     'ResourceWarning', 'RuntimeError', 'RuntimeWarning',
-                     'StopAsyncIteration', 'StopIteration', 'SyntaxError',
-                     'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError',
-                     'TimeoutError', 'TypeError', 'UnboundLocalError',
-                     'UnicodeDecodeError', 'UnicodeEncodeError', 'UnicodeError',
-                     'UnicodeTranslateError', 'UnicodeWarning', 'UserWarning',
-                     'ValueError', 'Warning', 'WindowsError', 'ZeroDivisionError',
-                     '__build_class__', '__debug__', '__doc__', '__import__',
-                     '__loader__', '__name__', '__package__', '__spec__', 'abs',
-                     'all', 'any', 'ascii', 'bin', 'bool', 'breakpoint', 'bytearray',
-                     'bytes', 'callable', 'chr', 'classmethod', 'compile', 'complex',
-                     'copyright', 'credits', 'delattr', 'dict', 'dir', 'divmod',
-                     'enumerate', 'eval', 'exec', 'exit', 'filter', 'float',
-                     'format', 'frozenset', 'getattr', 'globals', 'hasattr',
-                     'hash', 'help', 'hex', 'id', 'input', 'int', 'isinstance',
-                     'issubclass', 'iter', 'len', 'license', 'list', 'locals',
-                     'map', 'max', 'memoryview', 'min', 'next', 'object', 'oct',
-                     'open', 'ord', 'pow', 'print', 'property', 'qApp', 'quit',
-                     'range', 'repr', 'reversed', 'round', 'set', 'setattr', 'slice',
-                     'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type',
-                     'vars', 'zip']
+from custom_script_editor import constants as kk
+from custom_script_editor import palette
 
 
-    numbers = ['None', 'True', 'False']
+BASE_MESSAGES = ['warning', 'success', 'info', 'error']
 
-    # python operators
-    operators = ['=', '==', '!=', '<', '<=', '>', '>=', '\+', '-', '\*', '/',
-                 '//', '\%', '\*\*', '\+=', '-=', '\*=', '/=', '\%=', '\^',
-                 '\|', '\&', '\~', '>>', '<<']
 
-    # syntax styles
-    styles = {'keyword': char_format((200, 116, 220)),
-              'normal': char_format((170, 176, 190)),
-              'operator': char_format((200, 116, 220)),
-              'defclass': char_format((200, 116, 220)),
-              'called': char_format((92, 166, 237)),
-              'defName': char_format((92, 166, 237), 'bold'),
-              'className': char_format((228, 187, 106), 'bold'),
-              'classArg': char_format((228, 187, 106)),
-              'string': char_format((147, 195, 121)),
-              'comments': char_format((90, 99, 111), 'italic'),
-              'interm': char_format((224, 109, 116)),
-              'special': char_format((87, 180, 193)),
-              'numbers': char_format((207, 154, 102))}
 
-    #--------------------------------------------------------------------------
-    def __init__(self, document):
-        super(PythonHighlighter, self).__init__(document)
+class CustomHighlighter(QtGui.QSyntaxHighlighter):
 
-        self.rules = self.set_rules()
-
-    #--------------------------------------------------------------------------
-    def set_rules(self):
+    def __init__(self, text_edit):
         """
-        Set all syntax rules, except for comments, strings and triple-quotes,
-        that will be handled differently.
+        Args:
+            text_edit (QTextEdit)
         """
 
-        # digits rule
-        rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
+        super(CustomHighlighter, self).__init__(text_edit)
 
-        # add def arguments rule
-        rules += [('(\\bdef\\b\s+)(\w+\s*\()([^\)]+)', 3, self.styles['numbers'])]
-
-        # (moved downwards to override 'or ()' called-style, lets see if no other
-        # issue will append...)
-        """
-        # add python keywords rules
-        rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in self.keywords]
-        """
-
-        # add operators rules
-        rules += [('%s' % o, 0, self.styles['operator']) for o in self.operators]
-
-        rules += [
-                     # intermediates rule
-                     ('(\.)(\w+)', 2, self.styles['interm']),
-                     # called functions rule
-                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
-                     # declared functions rule
-                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['defName']),
-                     # declared classes rule
-                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['className'])
-                 ]
-
-        # add python keywords rules
-        rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in self.keywords]
-
-        # add python "special" keywords rules
-        rules += [('\\b%s\\b' % x, 0, self.styles['special'])
-                  for x in self.builtins_words]
-
-        # add class arguments rule
-        rules += [('(\\bclass\\b\s+)(\w+\s*\()([^\)]+)', 3, self.styles['classArg'])]
-
-        rules += [
-                     # kwargs first part rule
-                     ('(,\s*|\()(\w+)(\s*=\s*)', 2, self.styles['numbers'])
-                 ]
-
-        # add numbers rule (called after intermediates sur float would not
-        # be considered as intermediates)
-        rules += [('\\b(%s)\\b' % n, 0, self.styles['numbers']) for n in self.numbers]
-
-        rules += [
-                    # set '.' on float back to numbers style
-                    ('\d+\.*\d+', 0, self.styles['numbers']),
-                    # set ',' back to normal
-                    (',', 0, self.styles['normal']),
-                 ]
-
-        # add decorators rule
-        rules += [('\@.+', 0, self.styles['called'])]
-
-        return [(QtCore.QRegExp(pat), index, fmt) for (pat, index, fmt) in rules]
-    #--------------------------------------------------------------------------
     def highlightBlock(self, line):
         """
-        Apply syntax highlighting to the given block of line (re-implementation,
-        automatically called by Qt).
+        Args:
+            line (str)
+
+        Qt re-implementation. Apply syntax highlighting to the given line.
         """
 
-        try:
-            for pattern, nth, format in self.rules:
-                expression = QtCore.QRegExp(pattern)
-                index = expression.indexIn(line, 0)
+        self.rule.apply(line)
 
-                while index >= 0:
-                    # we want the index of the nth match
-                    index = expression.pos(nth)
-                    length = len(expression.cap(nth))
-                    # set segment format
-                    self.setFormat(index, length, format)
-                    index = expression.indexIn(line, index + length)
+    def set_rule(self, rule):
+        self.rule = rule
 
-            self.apply_strings_and_comments_style(line)
 
-        except Exception as e:
-            return
-            print (e)
-    #--------------------------------------------------------------------------
+class LogHighlighter(CustomHighlighter):
+    """
+    Syntax highlighter for the log panel (MEL/Python/log rules).
+    """
+
+    def __init__(self, text_edit):
+        """
+        Args:
+            text_edit (QTextEdit)
+        """
+
+        log_palette = palette.LogPalette(text_edit)
+        python_palette = palette.PythonPalette(text_edit)
+        mel_palette = palette.MelPalette(text_edit)
+        rule = LogRule(self, log_palette, python_palette, mel_palette)
+        self.set_rule(rule)
+
+        super(LogHighlighter, self).__init__(text_edit)
+
+
+class MelHighlighter(CustomHighlighter):
+    """
+    Syntax highlighter for MEL tabs.
+    """
+
+    def __init__(self, text_edit):
+        """
+        Args:
+            text_edit (QTextEdit)
+        """
+
+        mel_palette = palette.MelPalette(text_edit)
+        rule = MelRule(self, mel_palette)
+        self.set_rule(rule)
+
+        super(MelHighlighter, self).__init__(text_edit)
+
+
+class PythonHighlighter(CustomHighlighter):
+    """
+    Syntax highlighter for Python tabs.
+    """
+
+    def __init__(self, text_edit):
+        """
+        Args:
+            text_edit (QTextEdit)
+        """
+
+        py_palette = palette.PythonPalette(text_edit)
+        rule = PythonRule(self, py_palette)
+        self.set_rule(rule)
+
+        super(PythonHighlighter, self).__init__(text_edit)
+
+class Rule(object):
+    """
+    Base class for highlighting rules. Must be re-implemented.
+    """
+
+    docstr_chars = []
+    docstr_close_chars = []
+    cmnt_chars = []
+    str_chars = []
+
+    def __init__(self, highlighter, rule_palette):
+
+        self.highlighter = highlighter
+        self.palette = rule_palette
+        self.styles = self.palette.char_formatted()
+        self.rules = self.get_rules()
+
+        self.delim_strings = self.docstr_chars +self.str_chars +self.cmnt_chars
+        self.docstr_states = [i for i, _ in enumerate(self.docstr_chars)]
+        self.str_states = [i +len(self.docstr_chars) for i, _ in enumerate(self.str_chars)]
+        self.comment_states = [
+            i +len(self.docstr_chars) +len(self.str_chars) for i, _ in enumerate(self.cmnt_chars)
+        ]
+
+        self.map_methods()
+
+    def apply_rule(self, line, expression, nth, txt_format):
+        """
+        Args:
+            line (str)
+            expression (QtCore.QRegExp)
+            nth (int) : the nth matching group that is to be highlighted
+            txt_format (QtGui.QTextCharFormat)
+
+        Apply <txt_format> on segments that matches <expression> in <line>.
+
+        """
+
+        index = expression.indexIn(line, 0)
+
+        while index >= 0:
+            # we want the index of the nth match
+            index = expression.pos(nth)
+            length = len(expression.cap(nth))
+            # set segment format
+            self.setFormat(index, length, txt_format)
+            index = expression.indexIn(line, index + length)
+
+    def apply(self, line):
+        """
+        Args:
+            line (str)
+
+        Apply all defined rules on line.
+        """
+
+        # straight-forward regex rules, no block state used
+        for pattern, nth, txt_format in self.rules:
+            self.apply_rule(line, pattern, nth, txt_format)
+
+        # strings, docstrings and comments rules, using block states to propagate
+        # un-closed rules from one line to another
+        self.apply_strings_and_comments_style(line)
+
+    def get_rules(self):
+        """ Returns empty list by default. """
+        return []
+
     def apply_strings_and_comments_style(self, line):
         """
-        Apply single or triple quotes, and comments highlight on line.
+        Args:
+            line (str)
+
+        Apply strings, docstrings and comments highlight on line.
         """
 
         # propagate previous line's state
@@ -223,19 +179,26 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
         start = 0
         pos = 0
 
-        delim_strings = TRIPLE_QUOTES +SINGLE_QUOTES +['#']
-
         while len(line) > pos > -1:
             # get current delimiter
             state = self.currentBlockState()
-            delim_str = delim_strings[state] if state > -1 else None
+            delim_str = self.delim_strings[state] if state > -1 else None
+
+            # switch to docstring closing char
+            if self.currentBlockState() in self.docstr_states:
+                delim_idx = self.docstr_chars.index(delim_str)
+                delim_str = self.docstr_close_chars[delim_idx]
+
+                        ############################
+                        #   No state is going on   #
+                        ############################
 
             # if no current delimiter, get the next delimiter in line
-            if not delim_str:
-                positions = [QtCore.QRegExp(x).indexIn(line, pos) for x in delim_strings]
+            if delim_str is None:
+                positions = [QtCore.QRegExp(x).indexIn(line, pos) for x in self.delim_strings]
 
                 # no more delimiter in line
-                if not any(x != -1 for x in positions):
+                if all(x == -1 for x in positions):
                     break
 
                 positions = [x +offset if x == -1 else x for x in positions]
@@ -249,17 +212,21 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
                 # "open" current state and delimiter
                 state = positions.index(pos)
                 self.setCurrentBlockState(state)
-                delim_str = delim_strings[state]
+                delim_str = self.delim_strings[state]
 
-                if state == 4:      # comments, paint until the end of the line
+                if state in self.comment_states:      # comments, paint until the end of the line
                     self.setFormat(pos, len(line) -pos, self.styles['comments'])
                     self.setCurrentBlockState(-1)
                     return          # there's no need for further analysis in this line
 
-                else:
-                    # "open" str (set painting start position)
-                    start = pos
-                    pos += len(delim_str)
+                # "open" str (set painting start position)
+                start = pos
+                pos += len(delim_str.replace('\\', ''))
+
+
+                    ######################################
+                    #   Some state is already going on   #
+                    ######################################
 
             # else, search for the next occurence of the current delimiter in line
             else:
@@ -270,11 +237,15 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
                     # check for comments after a \-propagated string
                     comment_pos = QtCore.QRegExp('#').indexIn(line, pos)
                     # comments found
-                    if comment_pos and self.currentBlockState() in [2, 3]:
+                    if comment_pos and self.currentBlockState() in self.str_states:
                         # last character before was a non-escaped \
                         if self.last_util_char(line, comment_pos) == '\\':
                             self.paint_string(start, comment_pos-1 -start, line)
-                            self.setFormat(comment_pos, len(line) -comment_pos, self.styles['comments'])
+                            self.setFormat(
+                                comment_pos,
+                                len(line) -comment_pos,
+                                self.styles['comments']
+                            )
                             return
                     break
 
@@ -285,33 +256,42 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
                     continue
 
                 # "close" and paint string
-                self.paint_string(start, next_pos +len(delim_str) -start -1, line)
+                self.paint_string(start, next_pos +len(delim_str.replace('\\', '')) -start -1, line)
                 self.setCurrentBlockState(-1)
-                pos = next_pos +len(delim_str)
+                pos = next_pos +len(delim_str.replace('\\', ''))
 
-        # ------ after iterations (current state may still be "opened") -------
+        ##############################################################
+        #   after iterations (current state may still be "opened")   #
+        ##############################################################
 
         if self.currentBlockState() == -1:
             return
 
         # comments (those after \ string-propagation are handled higher)
-        elif self.currentBlockState() == 4:
-            self.setFormat(start, len(line) -start, self.styles['comments'])
+        if self.currentBlockState() in self.comment_states:
+            self.setFormat(start, len(line) -start -1, self.styles['comments'])
             self.setCurrentBlockState(-1)
 
-        elif self.currentBlockState() in [2, 3]:
+        elif self.currentBlockState() in self.str_states:
             # no string-propagation
             if line[-1] != '\\':
                 self.setCurrentBlockState(-1)
             else:
-                self.paint_string(start, len(line) -start, line)
+                self.paint_string(start, len(line) -start -1, line)
                 self.setFormat(len(line)-1, 1, self.styles['special'])
         # triple-quotes
         else:
-            self.paint_string(start, len(line) -start, line)
-    #--------------------------------------------------------------------------
+            self.paint_string(start, len(line) -start -1, line)
+
     def last_util_char(self, line, pos):
         """
+        Args:
+            line (str)
+            pos (int)
+
+        Returns:
+            (str or None)
+
         Perform backward-lookup from <pos> in line for the first non-whitespace
         character.
         Return None if this character is escaped.
@@ -328,9 +308,18 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
                 return line[-1]
 
             line = line[:-1]
-    #--------------------------------------------------------------------------
+
     def is_escaped(self, line, pos):
-        """ Check the escaped state of the character at <pos> in <line>. """
+        """
+        Args:
+            line (str)
+            pos (int)
+
+        Returns:
+            (bool)
+
+        Check the escaped state of the character at <pos> in <line>.
+        """
 
         escaped = False
 
@@ -342,15 +331,15 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
                 break
 
         return escaped
-    #--------------------------------------------------------------------------
+
     def paint_string(self, start, count, line):
         """
-        Inputs :
-            <start>         int (string start pos in <line>)
-            <count>         int (number of character to paint)
-            <line>          str
+        Args:
+            start (int) : string start pos in <line>
+            count (int) : number of character to paint
+            line (str)
 
-        Return value:
+        Returns:
             None
 
         Set each charcater's style from start to end, checking if it is escaped
@@ -367,3 +356,315 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
                 self.setFormat(i, 1, self.styles['string'])
             else:
                 self.setFormat(i-1, 2, self.styles['special'])
+
+    def map_methods(self):
+        self.setFormat = self.highlighter.setFormat
+        self.setCurrentBlockState = self.highlighter.setCurrentBlockState
+        self.currentBlockState = self.highlighter.currentBlockState
+        self.previousBlockState = self.highlighter.previousBlockState
+
+
+
+class LogRule(Rule):
+    """
+    Syntax highlighter for Maya Script Editor's log panel. This class has its
+    own specific rules, and also uses MEL and Python ones.
+    """
+
+    def __init__(self, highlighter, log_palette, python_palette, mel_palette):
+        """
+        Args:
+            highlighter (LogHighlighter)
+            palette (palette.Palette)
+        """
+
+        Rule.__init__(self, highlighter, log_palette)
+
+        self.current_rule = 'log'
+
+        self.rules = self.get_rules()
+        self.lower_rules = self.get_lower_rules()
+
+        self.mel_rules = MelRule(highlighter, mel_palette)
+        self.python_rules = PythonRule(highlighter, python_palette)
+
+    def get_lower_rules(self):
+        """
+        Returns:
+            (list[tuple(QtCore.QRegExp, int, QtGui.QTextCharFormat)])
+
+        Get all .lower() syntax rules (applied on the whole line).
+        """
+
+        # set info, warning, error and success messages rules
+        message_regex = '[ ]*%(char)s(.)+(%(type)s[ ]*:)'
+
+        rules = [
+            (
+                message_regex % {'char': c, 'type': x},
+                self.styles[x]
+            ) for c in ('//', '#') for x in BASE_MESSAGES
+        ]
+
+        # info lines with '//' or '#' and no message type specified
+        rules += [('[ ]*%s(.)+' % c,self.styles['info']) for c in ('//', '#')]
+
+        return rules
+
+    def apply(self, line):
+        """
+        Args:
+            line (str)
+
+        Apply syntax highlighting rules to the given line.
+        """
+
+        try:
+            for pattern, format in self.lower_rules:
+                if re.match(pattern, line.lower()):
+                    self.setFormat(0, len(line), format)
+                    self.current_rule = 'log'
+                    return
+
+            if is_mel_line(line):
+                if not self.current_rule in ('log', 'MEL'):
+                    self.setCurrentBlockState(-1)
+                self.current_rule = 'MEL'
+
+            elif is_python_line(line):
+                if not self.current_rule in ('log', 'Python'):
+                    self.setCurrentBlockState(-1)
+                self.current_rule = 'Python'
+
+            if self.current_rule == 'MEL':
+                self.mel_rules.apply(line)
+            elif self.current_rule == 'Python':
+                self.python_rules.apply(line)
+            else:
+                super(LogRule, self).apply(line)
+
+        # CAREFUL !!!!!!!!!!
+        except Exception as e:
+            return
+
+    def apply_strings_and_comments_style(self, line):
+        return
+
+
+
+class MelRule(Rule):
+    """
+    Syntax highlighter for the MEL language.
+    """
+
+    docstr_chars = ['/\\*']
+    docstr_close_chars = ['\\*/']
+    cmnt_chars = ['//']
+    str_chars = ['"']
+
+    def get_rules(self):
+        """
+        Returns:
+            (list[tuple(QtCore.QRegExp, int, QtGui.QTextCharFormat)])
+
+        Get all MEL rules, except for comments, strings and triple-quotes,
+        that will be handled differently.
+        """
+
+        # digits rule
+        rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
+
+        rules += [('^\s*\w+', 0, self.styles['called'])]
+        rules += [('-(\w+)([ ]*\w*)', 1, self.styles['numbers'])]
+        rules += [('(\".*\")', 1, self.styles['string'])]
+
+        # $variables rules
+        rules += [('\$\w+', 0, self.styles['variables'])]
+
+        # add MEL keywords rules
+        rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in kk.MEL_KEYWORDS]
+        # add MEL numbers rules
+        rules += [('\\b(%s)\\b' % n, 0, self.styles['numbers']) for n in kk.MEL_NUMBERS]
+        # add MEL builtins rules
+        rules += [('\\b(%s)\\b' % n, 0, self.styles['special']) for n in kk.MEL_BUILTINS]
+        # add operators rules
+        rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
+
+        # declared procedures rule
+        rules += [ ('(\\bproc\\b\s+)(.+\s+)*(\w+)\s*\(', 3, self.styles['def_name']),]
+
+        # expressions between ``
+        rules += [('(`.*`)', 1, self.styles['called_expr'])]
+
+        rules += [
+                    # set '.' on float back to numbers style
+                    ('\d+\.*\d+', 0, self.styles['numbers']),
+                    # set ',' back to normal
+                    (',', 0, self.styles['normal']),
+                 ]
+
+        return rules
+
+
+class PythonRule(Rule):
+    """
+    Syntax highlighter for the Python language.
+    """
+
+    docstr_chars = ["'''", '"""']
+    docstr_close_chars = ["'''", '"""']
+    cmnt_chars = ['#']
+    str_chars = ["'", '"']
+
+    def get_rules(self):
+        """
+        Returns:
+            (list[tuple(QtCore.QRegExp, int, QtGui.QTextCharFormat)])
+
+        Get all Python rules, except for comments, strings and triple-quotes,
+        that will be handled differently.
+        """
+
+        # digits rule
+        rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
+
+        # add operators rules
+        rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
+
+        rules += [
+                     # intermediates rule
+                     ('(\.)(\w+)', 2, self.styles['interm']),
+                     # called functions rule
+                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
+                     # declared functions rule
+                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
+                     # declared classes rule
+                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name'])
+                 ]
+
+        # add python keywords rules
+        rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in kk.PYTHON_KEYWORDS]
+
+        # add python "self" rule
+        rules += [('\\b(self)\\b', 0, self.styles['self'])]
+
+        # add python "builtins" words rules
+        rules += [('\\b%s\\b' % x, 0, self.styles['special'])
+                  for x in kk.PYTHON_BUILTINS]
+
+        rules += [
+                     # kwargs first part rule
+                     ('(,\s*|\()(\w+)(\s*=\s*)', 2, self.styles['numbers'])
+                 ]
+
+        # add numbers rule (called after intermediates sur float would not
+        # be considered as intermediates)
+        rules += [('\\b(%s)\\b' % n, 0, self.styles['numbers']) for n in kk.PYTHON_NUMBERS]
+
+        rules += [
+                    # set '.' on float back to numbers style
+                    ('\d+\.*\d+', 0, self.styles['numbers']),
+                    # set ',' back to normal
+                    (',', 0, self.styles['normal']),
+                 ]
+
+        # add decorators rule
+        rules += [('\@.+', 0, self.styles['decorators'])]
+
+        return [(QtCore.QRegExp(pat), index, fmt) for (pat, index, fmt) in rules]
+
+
+
+                        ###########################
+                        #   detecting MEL lines   #
+                        ###########################
+
+def is_mel_line(line):
+    # one-line command (ends with ";")
+    if re.match('^\s*\w+([ ]+\(*\-.+([ ]\w+)*\)*)*(\(*[ ]+\"*.+\"*\)*)*;', line):
+        return True
+    if re.match('^\s*/\\*', line):                      # /* docstrings
+        return True
+    if re.search('(global\s+)*proc', line):             # proc declarations
+        return True
+    if re.match('\$.+\s*\=', line):                     # $variable declaration
+        return True
+    if re.match('for\s*\(.+\)\s*{', line):              # for (...) { declaration
+        return True
+    if re.match("^\s*//", line):                        # comment lines
+        return True
+    if re.search('\\btrue\\b', line):                    # true
+        return True
+    if re.search('\\bfalse\\b', line):                   # false
+        return True
+    if re.search('\\bnone\\b', line):                    # none
+        return True
+
+    loops_regex = '%s\s*\(.+\)\s*\{'
+    if re.search(loops_regex % 'while', line):           # while (...) { declaration
+        return True
+    if re.search(loops_regex % 'for', line):             # for (...) { declaration
+        return True
+    if re.search(loops_regex % 'if', line):              # if (...) { declaration
+        return True
+    if re.search(loops_regex % 'else', line):            # else (...) { declaration
+        return True
+    if re.search(loops_regex % 'else if', line):         # else if (...) { declaration
+        return True
+
+    functions_regex = '%s\s*\(.+\)'
+    if re.search(functions_regex % 'catch', line):           # catch (...) declaration
+        return True
+    if re.search(functions_regex % 'catchQuiet', line):      # catchQuiet (...) declaration
+        return True
+    return False
+
+
+                      ##############################
+                      #   detecting Python lines   #
+                      ##############################
+
+
+def is_python_line(line):
+    if re.match('from(.)+import(.)+', line):            # "from" imports
+        return True
+    if re.match('import(.)+', line):                    # imports
+        return True
+    if re.search('(\\bdef\\b\s*)(_*\w+_*)', line):      # function declarations
+        return True
+    if re.search('(\\bclass\\b\s*)(_*\w+_*)', line):    # class declarations
+        return True
+    if re.match('^\s*"""', line):                       # """ docstrings
+        return True
+    if re.match("^\s*'''", line):                       # ''' docstrings
+        return True
+    if re.match("\s*\@\w+\s*", line):                   # decorators
+        return True
+    if re.match("^\s*#", line):                         # comment lines
+        return True
+    if re.search('\\bTrue\\b', line):                   # True
+        return True
+    if re.search('\\bFalse\\b', line):                  # False
+        return True
+    if re.search('\\bNone\\b', line):                   # None
+        return True
+
+    loops_regex = '%s\s*.*\s*:'
+    if re.search(loops_regex % 'while', line):           # while (...) : declaration
+        return True
+    if re.search(loops_regex % 'for', line):             # for (...) : declaration
+        return True
+    if re.search(loops_regex % 'if', line):              # if (...) : declaration
+        return True
+    if re.search(loops_regex % 'else', line):            # else (...) : declaration
+        return True
+    if re.search(loops_regex % 'elif', line):            # else if (...) : declaration
+        return True
+    if re.search(loops_regex % 'try', line):             # try (...) : declaration
+        return True
+    if re.search(loops_regex % 'except', line):          # except (...) : declaration
+        return True
+    if re.search(loops_regex % 'finally', line):         # finally (...) : declaration
+        return True
+
+    return False
