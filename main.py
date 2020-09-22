@@ -2,9 +2,6 @@
 Script for customizing Maya's script editor hightlights and hotkeys.
 """
 
-__author__ = 'Olivier Monteil'
-__version__ = 1.1
-__ide_version__ = 'Atom'
 
 import re
 
@@ -33,6 +30,7 @@ import snippets
 import palette
 
 VALID_TABS_REGEX = ['MEL', 'Python', '[\w\-_]+(.py)$']
+
 
 
 class ScriptEditorDetector(QtCore.QObject):
@@ -180,9 +178,9 @@ def script_tools_menu(menu):
     tools_menu.run(pos)
 
 def palette_editor_menu(menu):
-    """ Run "set palette..." menu. """
+    """ Run "Edit palette..." menu. """
 
-    print '// "set palette..." not Implemented yet.'
+    print '// "Edit palette..." not Implemented yet.'
 
 def remove_maya_highlight(widget):
     """
@@ -212,7 +210,7 @@ def add_custom_menus():
         mc.menuItem('ScriptTools', p=main_menu, radialPosition="W",
                                  label='Script Tools', command=script_tools_menu)
         mc.menuItem('PaletteSetter', p=main_menu, radialPosition="E",
-                                 label='set palette...', command=palette_editor_menu)
+                                 label='Edit palette...', command=palette_editor_menu)
 
 def is_valid_tab_name(name, exlude_mel=False):
     """
@@ -233,6 +231,7 @@ def customize_script_editor(*args):
     KeysHandler and SnippetsHandler if required.
     """
 
+    # highlight the Script Editor logs panel
     log_field = get_logs_text_edit()
     if log_field and child_class_needed(log_field, syntax_highlight.LogHighlighter):
         remove_maya_highlight(log_field)      # remove maya's default QSyntaxHighlighter

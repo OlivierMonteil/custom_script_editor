@@ -266,7 +266,17 @@ class LogPalette(Palette):
 
 
 def char_format(rgb, style=''):
-    # return a QtGui.QTextCharFormat with the given attributes (color, font weigth...etc)
+    """
+    Args:
+        rgb (tuple(int))
+        style (str, optional)
+
+    Returns:
+        (QtGui.QTextCharFormat)
+
+    Return a QtGui.QTextCharFormat with the given attributes (color, font
+    weigth...etc).
+    """
 
     if isinstance(rgb, tuple):
         color = QtGui.QColor(*rgb)
@@ -284,6 +294,13 @@ def char_format(rgb, style=''):
     return c_format
 
 def get_palette(theme):
+    """
+    Args:
+        theme (str) : "log/default" for instance
+
+    Get the <theme> palette from the according json file.
+    """
+
     palette_file = os.path.join(PALETTES_ROOT, '{}.json'.format(theme))
 
     with open(palette_file, 'r') as opened_file:

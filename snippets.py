@@ -1,10 +1,6 @@
-###############################################################################
-#       Script for customizing Maya's script editor hightlights and hotkeys.
-###############################################################################
-
-__author__ = 'Olivier Monteil'
-__version__ = 1.1
-__ide_version__ = 'Atom'
+"""
+Snippets management file.
+"""
 
 import sys
 import json
@@ -33,19 +29,18 @@ import traceback
 
 CUSTOM_JSON = os.path.dirname(__file__).replace('\\', '/') +'/custom_snippets.json'
 
+
 def print_error(func):
     def wrap(*args, **kwargs):
         try:
             return func(*args, **kwargs)
 
-        except Exception as e:
+        except:
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            print (traceback.format_exc())
+            print traceback.format_exc()
 
     return wrap
 
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
 
 class SnippetsHandler(QtCore.QObject):
 
@@ -62,26 +57,37 @@ class SnippetsHandler(QtCore.QObject):
         self.text_edit.cursorPositionChanged.connect(self.on_cursor_change)
         self.box = None
 
-    #--------------------------------------------------------------------------
     def get_snippet_box(self, form_lay):
-        # get 'Snippets' menu's chechbox
+        """
+        Returns:
+            form_lay (str)
+
+        Get 'Snippets' menu's chechbox
+        """
 
         script_editor_popup_menus = mel.eval("$toto = $gCommandPopupMenus;")
 
         popup_menu = [menu for menu in script_editor_popup_menus if form_lay in menu][0]
         return popup_menu +'|CustomMenu|SnippetBox'
-    #--------------------------------------------------------------------------
+
     def snippets_enabled(self):
-        # mc.menuItem(self.snippets_box, q=True, checkBox=True) seems to fail
-        # (when menuItem is not visible?), so we have to get menuItem as QAction
-        # to get the right result!
+        """
+        Returns:
+            (bool)
+
+        Get Custom Menu > Snippets box checked state.
+
+        (mc.menuItem(self.snippets_box, q=True, checkBox=True) seems to fail,
+        so we have to get menuItem as QAction to get the right result)
+        """
+
         ptr = OMUI.MQtUtil.findMenuItem(self.snippets_box)
         if not ptr:
             return False
-            
+
         qt_box = shiboken.wrapInstance(long(ptr), QtWidgets.QAction)
         return qt_box.isChecked()
-    #--------------------------------------------------------------------------
+
     def eventFilter(self, obj, event):
         # close snippet box on RMB and MMB
         # (LMB seems to be handled directly into QTextCursor class)
@@ -153,26 +159,48 @@ class SnippetsHandler(QtCore.QObject):
                 pass
 
         return False
-    #--------------------------------------------------------------------------
+
     def validate_snippet(self, text):
-        # insert selected completion into QTextEdit and close snippets box
+        """
+        Args:
+            text (str)
+
+        Insert selected completion into QTextEdit and close the snippets box.
+        """
 
         cursor = self.text_edit.textCursor()
         pos = cursor.position()
         cursor.movePosition(cursor.StartOfWord, cursor.MoveAnchor)
+
         if cursor.position() == pos:
             cursor.movePosition(cursor.PreviousWord, cursor.MoveAnchor)
+
         cursor.movePosition(cursor.EndOfWord, cursor.KeepAnchor)
         cursor.insertText(text)
+
         mc.evalDeferred(self.kill_box, lowestPriority=True)
-    #--------------------------------------------------------------------------
+
     def kill_box(self):
+        """
+        Close the snippets box.
+        """
+
         if self.box:
             self.box.close()
         self.box = None
-    #--------------------------------------------------------------------------
+
     @print_error
     def get_custom_snippets(self, line_to_key):
+        """
+        Args:
+            line_to_key (str)
+
+        Returns:
+            (list[str])
+
+        Get exception and double underscore snippets.
+        """
+
         custom_snippets = []
         word_to_key = line_to_key.split(' ')[-1]
 
@@ -191,25 +219,50 @@ class SnippetsHandler(QtCore.QObject):
                         custom_snippets.append(word[len(word_to_key_root):])
 
         return custom_snippets
-    #--------------------------------------------------------------------------
+
     def get_double_underscore_snippets(self, word_to_key):
+        """
+        Args:
+            word_to_key (str)
+
+        Returns:
+            (list[str] or [])
+
+        Get double underscore snippets if<word_to_key> starts with an "_" char .
+        """
+
         if word_to_key.startswith('_'):
             return ['__main__', '__name__', '__class__', '__init__']
 
         return []
-    #--------------------------------------------------------------------------
+
     @print_error
     def custom_words(self):
+        """
+        Returns:
+            (list[str] or [])
+
+        Get user snippets from custom_snippets.json.
+        """
+
         try:
             with open(CUSTOM_JSON, 'r') as opened_file:
                 content = json.load(opened_file)
                 return content['user']
         except:
             return []
-    #--------------------------------------------------------------------------
+
     @print_error
     def get_exception_snippets(self, line_to_key):
-        # propose "Exception" snippet after "except"
+        """
+        Args:
+            word_to_key (str)
+
+        Returns:
+            (list[str] or [])
+
+        Get "Exception" snippets after "except".
+        """
 
         words_before_key = re.findall('\w+\.*\w*', line_to_key)
         standard_except = 'except Exception as e:'
@@ -225,9 +278,21 @@ class SnippetsHandler(QtCore.QObject):
         errors = [e for e in errors if e.lower().startswith(words_before_key[1].lower())]
 
         return sorted([x +' as e:' for x in errors])
-    #--------------------------------------------------------------------------
+
     @print_error
     def get_snippets(self, line, i, key):
+        """
+        Args:
+            line (str)
+            i (int)
+            key (str)
+
+        Returns:
+            (list[str] or [])
+
+        Get snippets list for current word.
+        """
+
         word_before_key = ''
 
         # retrieve current word begining to new character
@@ -243,7 +308,7 @@ class SnippetsHandler(QtCore.QObject):
 
         found_snippets = self.get_dir_snippets(word_before_key)
         if not found_snippets:       # == if no dir() snippets
-            found_snippets = self.get_global_snippets()
+            found_snippets = self.get_modules_snippets()
             found_snippets.extend(self.get_text_snippets())
 
         if found_snippets:
@@ -258,10 +323,15 @@ class SnippetsHandler(QtCore.QObject):
         matching.extend(self.get_super_snippets(line[:i] +key))
 
         return matching
-    #--------------------------------------------------------------------------
+
     @print_error
     def get_super_snippets(self, word):
-        # get current class and function names on super
+        """
+        Args:
+            word (str)
+
+        Get super(Class, self).func expression snippets.
+        """
 
         if not word.strip() in 'super':
             return []
@@ -278,9 +348,15 @@ class SnippetsHandler(QtCore.QObject):
                  [short_super] if class_name and not def_name else []
 
         return result
-    #--------------------------------------------------------------------------
+
     def get_previous_declaration_name(self, cursor, decl_str):
-        # get class or def name backwards from current position
+        """
+        Args:
+            cursor (QTextCursor)
+            decl_str (str) : "class" or "def"
+
+        Retrieve current "class" or "def" name from previous lines.
+        """
 
         doc = cursor.document()
         search_cursor = doc.find(QtCore.QRegExp(decl_str +'\s+(\w+)'),
@@ -291,34 +367,53 @@ class SnippetsHandler(QtCore.QObject):
             return None
 
         return line.split(decl_str)[1].split('(')[0].split(':')[0].strip()
-    #--------------------------------------------------------------------------
+
     def get_text_snippets(self):
-        # return words from current tab with length > 3
+        """
+        Returns:
+            (list[str])
+
+        Return words from current tab with length > 3.
+        """
+
         text = self.text_edit.toPlainText()
         return [x for x in re.findall('[\w]+', text) if len(x) >3]
-    #--------------------------------------------------------------------------
+
     @print_error
-    def get_global_snippets(self):
-        # get "root" modules into maya
+    def get_modules_snippets(self):
+        """
+        Returns:
+            (list[str])
+
+        Get modules snippets from sys.
+        """
+
         imported_modules = [x.split('.')[0] for x in sys.modules]
         return list(set(imported_modules))
-    #--------------------------------------------------------------------------
+
     def get_dir_snippets(self, word):
-        # get dir(currentWord) as snippets ( removing the last '\.\w+' part )
-        # if error return empty list so the other snippets methods will be called
+        """
+        Returns:
+            (list[str])
+
+        Get dir(currentWord) as snippets ( removing the last '\.\w+' part )
+        if error return empty list so the other snippets methods will be called.
+        """
 
         if not word or not '.' in word:
             return None
 
         cuts = [x for x in word.split('.')[:-1] if x]
+        if cuts[0] not in sys.modules:
+            return None
 
         try:
             return dir(eval('.'.join(cuts)))
         except:
             return None
-    #--------------------------------------------------------------------------
+
     def on_cursor_change(self):
-        # close the snippets box if users clicks into the QTextEdit
+        """ Close the snippets box if users clicks into the QTextEdit. """
         if self.trigger_on_cursor_change:
             if self.box:
                 self.kill_box()
@@ -326,8 +421,7 @@ class SnippetsHandler(QtCore.QObject):
         else:
             self.trigger_on_cursor_change = True
 
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
+
 
 class SnippetBox(QtWidgets.QWidget):
 
@@ -362,50 +456,54 @@ class SnippetBox(QtWidgets.QWidget):
 
         self.view.itemPressed.connect(self.itemPressed.emit)
 
-    #--------------------------------------------------------------------------
     def add_item(self, name):
         return self.view.addItem(name)
-    #--------------------------------------------------------------------------
+
     def current_item(self):
         return self.view.currentItem()
-    #--------------------------------------------------------------------------
+
     def set_current_item(self, item):
         return self.view.setCurrentItem(item)
-    #--------------------------------------------------------------------------
+
     def item(self, index):
         return self.view.item(index)
-    #--------------------------------------------------------------------------
+
     def frame_width(self):
         return self.view.frameWidth()
-    #--------------------------------------------------------------------------
+
     def size_hint_for_column(self, col):
         return self.view.sizeHintForColumn(col)
-    #--------------------------------------------------------------------------
+
     def size_hint_for_row(self, row):
         return self.view.sizeHintForRow(row)
-    #--------------------------------------------------------------------------
+
     def set_current_row(self, row):
         return self.view.setCurrentRow(row)
-    #--------------------------------------------------------------------------
+
     def current_row(self):
         return self.view.currentRow()
-    #--------------------------------------------------------------------------
+
     def count(self):
         return self.view.count()
-    #--------------------------------------------------------------------------
+
     def go_down(self):
+        """
+        Go an item down. If current item is already the last one, got to the top.
+        """
+
         currRow = self.current_row()
         if currRow +1 < self.count():
             self.set_current_row(currRow +1)
         else:
             self.set_current_row(0)
-    #--------------------------------------------------------------------------
+
     def go_up(self):
+        """
+        Go an item up. If current item is already the first one, got to the bottom.
+        """
+
         currRow = self.current_row()
         if currRow -1 > 0:
             self.set_current_row(currRow -1)
         else:
             self.set_current_row(self.count() -1)
-
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------

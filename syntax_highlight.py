@@ -126,7 +126,7 @@ class Rule(object):
         """
         Args:
             line (str)
-            expression (QtCore.QRegExp)
+            expression (QtCore.QRegExp or str)
             nth (int) : the nth matching group that is to be highlighted
             txt_format (QtGui.QTextCharFormat)
 
@@ -134,6 +134,7 @@ class Rule(object):
 
         """
 
+        expression = QtCore.QRegExp(expression)
         index = expression.indexIn(line, 0)
 
         while index >= 0:
@@ -420,9 +421,9 @@ class LogRule(Rule):
         """
 
         try:
-            for pattern, format in self.lower_rules:
+            for pattern, txt_format in self.lower_rules:
                 if re.match(pattern, line.lower()):
-                    self.setFormat(0, len(line), format)
+                    self.setFormat(0, len(line), txt_format)
                     self.current_rule = 'log'
                     return
 
@@ -443,7 +444,7 @@ class LogRule(Rule):
             else:
                 super(LogRule, self).apply(line)
 
-        # CAREFUL !!!!!!!!!!
+        # SILENT ERRORS !!
         except Exception as e:
             return
 
