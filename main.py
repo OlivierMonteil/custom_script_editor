@@ -23,14 +23,12 @@ try:
 except ImportError:
     import shiboken
 
-from tools import menu as tools_menu
-import syntax_highlight
-import keys
-import snippets
-import palette
-
-VALID_TABS_REGEX = ['MEL', 'Python', '[\w\-_]+(.py)$']
-
+from custom_script_editor.tools import menu as tools_menu
+from custom_script_editor import syntax_highlight
+from custom_script_editor import keys
+from custom_script_editor import snippets
+from custom_script_editor import palette
+from custom_script_editor import constants as kk
 
 
 class ScriptEditorDetector(QtCore.QObject):
@@ -104,7 +102,7 @@ def get_logs_text_edit():
     text_edits = get_text_edits(script_editor)
 
     for te in text_edits:
-        if 'cmdScrollFieldReporter1' in te.objectName():
+        if 'cmdScrollFieldReporter' in te.objectName():
             return te
 
 def get_text_edits(widget):
@@ -180,7 +178,7 @@ def script_tools_menu(menu):
 def palette_editor_menu(menu):
     """ Run "Edit palette..." menu. """
 
-    print '// "Edit palette..." not Implemented yet.'
+    print '// [Custom Script Editor] Warning : "Edit palette..." not Implemented yet.'
 
 def remove_maya_highlight(widget):
     """
@@ -193,6 +191,23 @@ def remove_maya_highlight(widget):
     for syntax_hl in widget.findChildren(QtGui.QSyntaxHighlighter):
         syntax_hl.setDocument(None)
 
+def set_logs_word_wrap(enabled):
+    """
+    Args:
+        enabled (bool)
+
+    Set log panel's lines wrap mode on <enabled> state.
+    """
+
+    log_field = get_logs_text_edit()
+    if not log_field:
+        return
+
+    if enabled:
+        log_field.setLineWrapMode(log_field.WidgetWidth)
+    else:
+        log_field.setLineWrapMode(log_field.NoWrap)
+
 def add_custom_menus():
     """ Add custom menus to the Script Editor's tabs hotbox menu. """
 
@@ -202,15 +217,43 @@ def add_custom_menus():
         if not mc.menu(menu, q=True, exists=True):
             continue
 
-        main_menu = mc.menuItem('CustomMenu', p=menu, subMenu=True,
+        main_menu = mc.menuItem(kk.CUSTOM_MENU_NAME, p=menu, subMenu=True,
                                 radialPosition="S", label='Custom Menu')
 
-        mc.menuItem('SnippetBox', p=main_menu, radialPosition="S",
-                                 label='Snippets', checkBox=True)
-        mc.menuItem('ScriptTools', p=main_menu, radialPosition="W",
-                                 label='Script Tools', command=script_tools_menu)
-        mc.menuItem('PaletteSetter', p=main_menu, radialPosition="E",
-                                 label='Edit palette...', command=palette_editor_menu)
+        if 'cmdScrollFieldExecuter' in menu:   # script tabs
+            mc.menuItem(
+                kk.SNIPPETS_BOX_NAME,
+                p=main_menu,
+                radialPosition="S",
+                label='Snippets',
+                checkBox=True
+            )
+
+        if 'cmdScrollFieldReporter' in menu:   # logs panel
+            mc.menuItem(
+                kk.WORD_WRAP_BOX_NAME,
+                p=main_menu,
+                radialPosition="S",
+                label='Word wrap',
+                checkBox=False,
+                command=set_logs_word_wrap
+            )
+
+        mc.menuItem(
+            'ScriptTools',
+            p=main_menu,
+            radialPosition="W",
+            label='Script Tools',
+            command=script_tools_menu
+        )
+
+        mc.menuItem(
+            'PaletteEditor',
+            p=main_menu,
+            radialPosition="E",
+            label='Edit palette...',
+            command=palette_editor_menu
+        )
 
 def is_valid_tab_name(name, exlude_mel=False):
     """
@@ -222,7 +265,7 @@ def is_valid_tab_name(name, exlude_mel=False):
         (bool)
     """
 
-    tabs_regex = VALID_TABS_REGEX[1:] if exlude_mel else VALID_TABS_REGEX
+    tabs_regex = kk.VALID_TABS_REGEX[1:] if exlude_mel else kk.VALID_TABS_REGEX
     return True if any(re.match(regex, name) for regex in tabs_regex) else False
 
 def customize_script_editor(*args):
@@ -281,7 +324,7 @@ def customize_script_editor(*args):
                     t.installEventFilter(snippets_handle)
 
             except Exception as e:
-                print 'in customize_script_editor', e
+                print '// [Custom Script Editor] Error :', e
 
     add_custom_menus()
 

@@ -158,15 +158,15 @@ class QRegexSimulator(QtWidgets.QMainWindow):
 
         return False
 
-def closeExisting(mayaQtUi):
+def closeExisting(maya_ui_qt):
     """
     Args:
-        mayaQtUi (QtWidgets.QMainWindow) : wrapped instance of Maya's main window
+        maya_ui_qt (QtWidgets.QMainWindow) : wrapped instance of Maya's main window
 
     Close existing MainWindow instance in Maya.
     """
 
-    for widget in mayaQtUi.children():
+    for widget in maya_ui_qt.children():
         if widget.objectName() == WINDOW_OBJECT_NAME:
             widget.setParent(None)
             widget.close()

@@ -1,3 +1,12 @@
+"""
+Scripts constant values.
+"""
+
+VALID_TABS_REGEX = ['MEL', 'Python', '[\w\-_]+(.py)$']
+CUSTOM_MENU_NAME = 'CustomMenu'
+SNIPPETS_BOX_NAME = 'SnippetBox'
+WORD_WRAP_BOX_NAME = 'WordWrapBox'
+
 PYTHON_NUMBERS = [
     'None',
     'True',

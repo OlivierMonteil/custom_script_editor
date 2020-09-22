@@ -1,0 +1,25 @@
+"""
+Sample text for palette previews.
+"""
+
+import os
+import foo
+
+ROOT_PATH = 'C:\\Users\\Toto\\Documents\\tmp'
+
+class Human(foo.bar):
+
+    def __init__(self, name=None, *args, **kwargs):
+        super(Human, self).__init__(*args, **kwargs)
+
+        # comments
+        self.name = name if not name is None else 'Toto'
+        self.path = os.path.join(ROOT_PATH, '{}'.format(self.name))
+
+    @staticmethod
+    def from_scratch(name):
+        return Human(name)
+
+
+if __name__ == '__main__':
+    toto = Human('Toto')

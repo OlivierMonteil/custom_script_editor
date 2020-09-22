@@ -25,6 +25,8 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
             text_edit (QTextEdit)
         """
 
+        self.text_edit = text_edit
+
         super(CustomHighlighter, self).__init__(text_edit)
 
     def highlightBlock(self, line):
@@ -40,6 +42,15 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
     def set_rule(self, rule):
         self.rule = rule
 
+    def set_theme(self, theme):
+        self.palette.apply_theme(self.text_edit, theme)
+        self.update()
+
+    def update(self):
+        self.rule.update()
+        self.rehighlight()
+
+
 
 class LogHighlighter(CustomHighlighter):
     """
@@ -52,10 +63,10 @@ class LogHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        log_palette = palette.LogPalette(text_edit)
+        self.palette = palette.LogPalette(text_edit)
         python_palette = palette.PythonPalette(text_edit)
         mel_palette = palette.MelPalette(text_edit)
-        rule = LogRule(self, log_palette, python_palette, mel_palette)
+        rule = LogRule(self, self.palette, python_palette, mel_palette)
         self.set_rule(rule)
 
         super(LogHighlighter, self).__init__(text_edit)
@@ -72,8 +83,8 @@ class MelHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        mel_palette = palette.MelPalette(text_edit)
-        rule = MelRule(self, mel_palette)
+        self.palette = palette.MelPalette(text_edit)
+        rule = MelRule(self, self.palette)
         self.set_rule(rule)
 
         super(MelHighlighter, self).__init__(text_edit)
@@ -90,8 +101,8 @@ class PythonHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        py_palette = palette.PythonPalette(text_edit)
-        rule = PythonRule(self, py_palette)
+        self.palette = palette.PythonPalette(text_edit)
+        rule = PythonRule(self, self.palette)
         self.set_rule(rule)
 
         super(PythonHighlighter, self).__init__(text_edit)
@@ -121,6 +132,10 @@ class Rule(object):
         ]
 
         self.map_methods()
+
+    def update(self):
+        self.styles = self.palette.char_formatted()
+        self.rules = self.get_rules()
 
     def apply_rule(self, line, expression, nth, txt_format):
         """
@@ -476,7 +491,7 @@ class MelRule(Rule):
         rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
 
         rules += [('^\s*\w+', 0, self.styles['called'])]
-        rules += [('-(\w+)([ ]*\w*)', 1, self.styles['numbers'])]
+        rules += [('-(\w+)([ ]*\w*)', 1, self.styles['flags'])]
         rules += [('(\".*\")', 1, self.styles['string'])]
 
         # $variables rules
@@ -492,7 +507,7 @@ class MelRule(Rule):
         rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
 
         # declared procedures rule
-        rules += [ ('(\\bproc\\b\s+)(.+\s+)*(\w+)\s*\(', 3, self.styles['def_name']),]
+        rules += [ ('(\\bproc\\b\s+)(.+\s+)*(\w+)\s*\(', 3, self.styles['proc_name']),]
 
         # expressions between ``
         rules += [('(`.*`)', 1, self.styles['called_expr'])]
@@ -532,17 +547,6 @@ class PythonRule(Rule):
         # add operators rules
         rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
 
-        rules += [
-                     # intermediates rule
-                     ('(\.)(\w+)', 2, self.styles['interm']),
-                     # called functions rule
-                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
-                     # declared functions rule
-                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
-                     # declared classes rule
-                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name'])
-                 ]
-
         # add python keywords rules
         rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in kk.PYTHON_KEYWORDS]
 
@@ -552,6 +556,21 @@ class PythonRule(Rule):
         # add python "builtins" words rules
         rules += [('\\b%s\\b' % x, 0, self.styles['special'])
                   for x in kk.PYTHON_BUILTINS]
+
+        rules += [
+                     # declared functions rule
+                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
+                     # inherited classes rule
+                     ('(\\bclass\\b\s*_*\w+_*\s*\()(.+)(\))', 2, self.styles['class_arg']),
+                     # intermediates rule
+                     ('(\.)(\w+)', 2, self.styles['interm']),
+                     # called functions rule
+                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
+                     # declared classes rule
+                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name'])
+                 ]
+
+
 
         rules += [
                      # kwargs first part rule

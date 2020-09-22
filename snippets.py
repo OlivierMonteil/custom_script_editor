@@ -27,6 +27,9 @@ except ImportError:
 
 import traceback
 
+from custom_script_editor import constants as kk
+
+
 CUSTOM_JSON = os.path.dirname(__file__).replace('\\', '/') +'/custom_snippets.json'
 
 
@@ -68,7 +71,9 @@ class SnippetsHandler(QtCore.QObject):
         script_editor_popup_menus = mel.eval("$toto = $gCommandPopupMenus;")
 
         popup_menu = [menu for menu in script_editor_popup_menus if form_lay in menu][0]
-        return popup_menu +'|CustomMenu|SnippetBox'
+        return '{}|{}|{}'.format(
+            popup_menu, kk.CUSTOM_MENU_NAME, kk.SNIPPETS_BOX_NAME
+        )
 
     def snippets_enabled(self):
         """

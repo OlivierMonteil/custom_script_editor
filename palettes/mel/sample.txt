@@ -1,0 +1,26 @@
+global proc int detectToto(string $name){
+    /*
+    Some docstrings, as this useful function
+    must be detailed...
+    */
+
+    // Some comments...
+
+    print ("Running...\n");
+
+    int $valid = 0;
+
+    if ($name == "Toto"){
+        $valid = 1;
+    }
+
+    return $valid;
+}
+
+// running Maya MEL commands
+string $selection[] = `ls -s`;
+string $envFile = "C:\\Users\\Toto\\Documents\\maya\\2018\\Maya.env";
+file -f -new;
+
+int $isToto = detectToto("Alfred");
+print ($isToto);

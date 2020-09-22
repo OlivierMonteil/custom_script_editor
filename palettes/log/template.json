@@ -1,0 +1,31 @@
+{
+    "attributes": {
+        "info": [
+            "Infos",
+            null
+        ],
+        "warning": [
+            "Warnings",
+            null
+        ],
+        "error": [
+            "Errors",
+            null
+        ],
+        "success": [
+            "Successes",
+            null
+        ],
+        "background": [
+            "Background",
+            null
+        ],
+        "normal": [
+            "Base text",
+            "Non-highlighted text color."
+        ]
+    },
+    "font_specs": {
+        "warning": "italic"
+    }
+}

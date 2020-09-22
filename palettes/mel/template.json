@@ -1,0 +1,61 @@
+{
+    "attributes": {
+        "background": [
+            "Background",
+            null
+        ],
+        "keyword": [
+            "MEL keywords",
+            "if, for, proc, etc..."
+        ],
+        "normal": [
+            "Base text",
+            "Non-highlighted text color."
+        ],
+        "operator": [
+            "MEL operators",
+            null
+        ],
+        "called": [
+            "Called functions",
+            null
+        ],
+        "called_expr": [
+            "Expressions between ``",
+            null
+        ],
+        "proc_name": [
+            "Proc names",
+            null
+        ],
+        "flags": [
+            "Flags",
+            null
+        ],
+        "string": [
+            "Strings",
+            null
+        ],
+        "comments": [
+            "Comments",
+            null
+        ],
+        "special": [
+            "MEL builtins",
+            "MEL builtins and escaped characters."
+        ],
+        "variables": [
+            "$Variables",
+            null
+        ],
+        "numbers": [
+            "numbers",
+            null
+        ]
+    },
+    "font_specs": {
+        "def_name": "bold",
+        "class_name": "bold",
+        "comments": "italic"
+    }
+}

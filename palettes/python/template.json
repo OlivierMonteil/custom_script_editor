@@ -1,0 +1,69 @@
+{
+    "attributes": {
+        "normal": [
+            "Base text",
+            "Non-highlighted text color."
+        ],
+        "background": [
+            "Background",
+            null
+        ],
+        "keyword": [
+            "Python keywords",
+            "def, class, if, for, lambda, etc..."
+        ],
+        "operator": [
+            "Python operators",
+            null
+        ],
+        "called": [
+            "Called methods/classes",
+            null
+        ],
+        "def_name": [
+            "Functions",
+            null
+        ],
+        "class_name": [
+            "Classes",
+            null
+        ],
+        "class_arg": [
+            "Class inherited objects",
+            null
+        ],
+        "string": [
+            "Strings",
+            null
+        ],
+        "comments": [
+            "Comments",
+            null
+        ],
+        "self": [
+            "\"self\" keyword",
+            null
+        ],
+        "decorators": [
+            "Decorators",
+            null
+        ],
+        "interm": [
+            "Intermediate objects",
+            "Intermediate levels like module.intermediate.method()."
+        ],
+        "special": [
+            "Python builtins",
+            "Python builtins and escaped characters."
+        ],
+        "numbers": [
+            "Numbers",
+            null
+        ]
+    },
+    "font_specs": {
+        "comments": "italic",
+        "def_name": "bold",
+        "class_name": "bold"
+    }
+}
