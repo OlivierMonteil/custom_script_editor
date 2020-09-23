@@ -25,7 +25,7 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
             text_edit (QTextEdit)
         """
 
-        super(CustomHighlighter, self).__init__(text_edit)
+        QtGui.QSyntaxHighlighter.__init__(self, text_edit)
 
         self.text_edit = text_edit
 
@@ -45,7 +45,10 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
         Qt re-implementation. Apply syntax highlighting to the given line.
         """
 
-        self.rule.apply(line)
+        try:
+            self.rule.apply(line)
+        except:
+            pass
 
     def set_theme(self, theme):
         self.palette.apply_theme(self.text_edit, theme)
