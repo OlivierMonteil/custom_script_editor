@@ -102,7 +102,7 @@ def get_logs_text_edit():
     script_editor = get_script_editor()
     if not script_editor:
         return None
-
+        
     text_edits = get_text_edits(script_editor)
 
     for te in text_edits:

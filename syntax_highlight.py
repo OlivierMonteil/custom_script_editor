@@ -2,7 +2,11 @@
 Script for customizing Maya's script editor hightlights.
 """
 
+import os
 import re
+
+import traceback
+import datetime
 
 try:
     from PySide2 import QtCore, QtGui
@@ -16,6 +20,32 @@ from custom_script_editor import palette
 BASE_MESSAGES = ['warning', 'success', 'info', 'error']
 
 
+class Logger(object):
+    def __init__(self):
+
+        log_root = os.path.expanduser('~/tmp/log')
+        if not os.path.isdir(log_root):
+            os.makedirs(log_root)
+
+        # create some unique name for the log
+        date = datetime.datetime.now()
+        filename = 'custom_script_editor_{}{}{}_{}{}.log'.format(
+            date.year,
+            str(date.month).zfill(2),
+            str(date.day).zfill(2),
+            str(date.hour).zfill(2),
+            str(date.minute).zfill(2)
+        )
+
+        self.file = os.path.join(log_root, filename)
+
+    def error(self, message):
+        with open(self.file, 'a') as opened_file:
+            message = '# [Custom Script Editor] Error :\n' +str(message) +'\n'
+            opened_file.write(message)
+
+LOGGER = Logger()
+
 
 class CustomHighlighter(QtGui.QSyntaxHighlighter):
 
@@ -25,17 +55,13 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
             text_edit (QTextEdit)
         """
 
-        QtGui.QSyntaxHighlighter.__init__(self, text_edit)
-
         self.text_edit = text_edit
 
         # Seems that setting CustomHighlighter's parent is not enough to avoid
         # the garbage collector, so we will add it to its parent attributes
-        self.text_edit.custom_highlighter = self
+        text_edit.custom_highlighter = self
 
-        self.rule = None
-        self.palette = None
-
+        QtGui.QSyntaxHighlighter.__init__(self, text_edit)
 
     def highlightBlock(self, line):
         """
@@ -48,7 +74,7 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
         try:
             self.rule.apply(line)
         except:
-            pass
+            LOGGER.error(traceback.format_exc())
 
     def set_theme(self, theme):
         self.palette.apply_theme(self.text_edit, theme)
@@ -71,20 +97,18 @@ class LogHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        CustomHighlighter.__init__(self, text_edit)
-
         self.palette = palette.LogPalette(text_edit)
-        self.python_palette = palete.PythonPalette(text_edit)
-        self.mel_palette = palette.MelPalette(text_edit)
+        self._python_palette = palette.PythonPalette(text_edit)
+        self._mel_palette = palette.MelPalette(text_edit)
 
         self.rule = LogRule(
             self,
             self.palette,
-            self.python_palette,
-            self.mel_palette
+            self._python_palette,
+            self._mel_palette
         )
 
-
+        CustomHighlighter.__init__(self, text_edit)
 
 class MelHighlighter(CustomHighlighter):
     """
@@ -97,11 +121,10 @@ class MelHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        CustomHighlighter.__init__(self, text_edit)
-
         self.palette = palette.MelPalette(text_edit)
         self.rule = MelRule(self, self.palette)
 
+        CustomHighlighter.__init__(self, text_edit)
 
 
 class PythonHighlighter(CustomHighlighter):
@@ -115,10 +138,10 @@ class PythonHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        CustomHighlighter.__init__(self, text_edit)
-
         self.palette = palette.PythonPalette(text_edit)
         self.rule = PythonRule(self, self.palette)
+
+        CustomHighlighter.__init__(self, text_edit)
 
 
 class Rule(object):
@@ -413,17 +436,33 @@ class LogRule(Rule):
         self.current_rule = 'log'
 
         self.rules = self.get_rules()
-        self.lower_rules = self.get_lower_rules()
+        self.get_blocking_rules = self.get_blocking_rules()
+        self.message_rules = self.get_message_rules()
 
         self.mel_rules = MelRule(highlighter, mel_palette)
         self.python_rules = PythonRule(highlighter, python_palette)
 
-    def get_lower_rules(self):
+    def get_blocking_rules(self):
         """
         Returns:
             (list[tuple(QtCore.QRegExp, int, QtGui.QTextCharFormat)])
 
-        Get all .lower() syntax rules (applied on the whole line).
+        These rules are applied prior to MEL and Python rules. If any rule was
+        used, all MEL, Python and self rules will be ignored.
+        """
+
+        # printed Python objects (like <module 'maya' from '...'>) rule
+        rules = [('(?<!\")(<\s*\w+\s+\'.+\'\s+from\s+\'.+\'>)(?!\")', 0, self.styles['special'])]
+
+        return rules
+
+    def get_message_rules(self):
+        """
+        Returns:
+            (list[tuple(QtCore.QRegExp, QtGui.QTextCharFormat)])
+
+        Get all message rules. These are applied on the whole line, analysing the
+        line with no case match.
         """
 
         # set info, warning, error and success messages rules
@@ -437,7 +476,7 @@ class LogRule(Rule):
         ]
 
         # info lines with '//' or '#' and no message type specified
-        rules += [('[ ]*%s(.)+' % c,self.styles['info']) for c in ('//', '#')]
+        rules += [('[ ]*%s(.)+' % c, self.styles['info']) for c in ('//', '#')]
 
         return rules
 
@@ -450,19 +489,37 @@ class LogRule(Rule):
         """
 
         try:
-            for pattern, txt_format in self.lower_rules:
+            # apply message rules, and skip next if some rule matches (as applied
+            # on the whole line)
+            for pattern, txt_format in self.message_rules:
                 if re.match(pattern, line.lower()):
                     self.setFormat(0, len(line), txt_format)
                     self.current_rule = 'log'
                     return
 
+            block_next = False
+            # apply blocking rules
+            for pattern, nth, txt_format in self.get_blocking_rules:
+                match = re.search(pattern, line)
+
+                if match:
+                    start = match.start(nth)
+                    end = match.end(nth)
+                    self.setFormat(start, end -start, txt_format)
+                    block_next = True
+
+            if block_next:
+                return
+
             if is_mel_line(line):
                 if not self.current_rule in ('log', 'MEL'):
+                    # interrupt potential opened docstrings
                     self.setCurrentBlockState(-1)
                 self.current_rule = 'MEL'
 
             elif is_python_line(line):
                 if not self.current_rule in ('log', 'Python'):
+                    # interrupt potential opened docstrings
                     self.setCurrentBlockState(-1)
                 self.current_rule = 'Python'
 
@@ -470,11 +527,13 @@ class LogRule(Rule):
                 self.mel_rules.apply(line)
             elif self.current_rule == 'Python':
                 self.python_rules.apply(line)
-            else:
-                super(LogRule, self).apply(line)
 
-        # SILENT ERRORS !!
-        except Exception as e:
+            # apply overall rules
+            for pattern, nth, txt_format in self.rules or ():
+                self.apply_rule(line, pattern, nth, txt_format)
+
+        except:
+            LOGGER.error(traceback.format_exc())
             return
 
     def apply_strings_and_comments_style(self, line):

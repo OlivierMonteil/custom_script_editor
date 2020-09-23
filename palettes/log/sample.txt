@@ -5,3 +5,5 @@
   //
 // simple comment line.
 unknown-type line...
+
+myModule <module 'custom_script_editor' from 'C:/Users/Olivier/Documents/maya/scripts\custom_script_editor\__init__.pyc'>

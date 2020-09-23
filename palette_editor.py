@@ -27,6 +27,7 @@ class PaletteEditor(QtWidgets.QMainWindow):
         super(PaletteEditor, self).__init__(parent=parent)
 
         self.highlighter = None
+        self.sample_text = None
 
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowModality(QtCore.Qt.ApplicationModal)
@@ -55,7 +56,6 @@ class PaletteEditor(QtWidgets.QMainWindow):
         theme_palette = palette.get_palette('{}/{}'.format(txt_type, theme))
         template_palette = palette.get_palette('{}/template'.format(txt_type))
         attr_dict = template_palette['attributes']
-        font_specs = template_palette['font_specs']
         attributes = sorted(attr_dict.keys(), key=lambda x: attr_dict[x][0])
 
         self.buttons = {}
@@ -134,7 +134,6 @@ class PaletteEditor(QtWidgets.QMainWindow):
         self.sample_text.setText(text)
 
     def on_color_changed(self, rgb):
-        sender = self.sender()
         attr = self.sender().attr
 
         self.highlighter.palette.set_color(attr, rgb)
@@ -224,7 +223,7 @@ def run(pos=None):
 
     closeExisting(maya_ui_qt)
 
-    window = PaletteEditor('python', 'atom-OneDark', maya_ui_qt)
+    window = PaletteEditor('log', 'default', maya_ui_qt)
     window.show()
 
     # center window on mouse position

@@ -23,6 +23,10 @@
         "normal": [
             "Base text",
             "Non-highlighted text color."
+        ],
+        "special": [
+            "Base text",
+            "Non-highlighted text color."
         ]
     },
     "font_specs": {
