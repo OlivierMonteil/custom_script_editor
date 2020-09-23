@@ -25,9 +25,17 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
             text_edit (QTextEdit)
         """
 
+        super(CustomHighlighter, self).__init__(text_edit)
+
         self.text_edit = text_edit
 
-        super(CustomHighlighter, self).__init__(text_edit)
+        # Seems that setting CustomHighlighter's parent is not enough to avoid
+        # the garbage collector, so we will add it to its parent attributes
+        self.text_edit.custom_highlighter = self
+
+        self.rule = None
+        self.palette = None
+
 
     def highlightBlock(self, line):
         """
@@ -38,9 +46,6 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
         """
 
         self.rule.apply(line)
-
-    def set_rule(self, rule):
-        self.rule = rule
 
     def set_theme(self, theme):
         self.palette.apply_theme(self.text_edit, theme)
@@ -63,13 +68,19 @@ class LogHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        self.palette = palette.LogPalette(text_edit)
-        python_palette = palette.PythonPalette(text_edit)
-        mel_palette = palette.MelPalette(text_edit)
-        rule = LogRule(self, self.palette, python_palette, mel_palette)
-        self.set_rule(rule)
+        CustomHighlighter.__init__(self, text_edit)
 
-        super(LogHighlighter, self).__init__(text_edit)
+        self.palette = palette.LogPalette(text_edit)
+        self.python_palette = palete.PythonPalette(text_edit)
+        self.mel_palette = palette.MelPalette(text_edit)
+
+        self.rule = LogRule(
+            self,
+            self.palette,
+            self.python_palette,
+            self.mel_palette
+        )
+
 
 
 class MelHighlighter(CustomHighlighter):
@@ -83,11 +94,11 @@ class MelHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        self.palette = palette.MelPalette(text_edit)
-        rule = MelRule(self, self.palette)
-        self.set_rule(rule)
+        CustomHighlighter.__init__(self, text_edit)
 
-        super(MelHighlighter, self).__init__(text_edit)
+        self.palette = palette.MelPalette(text_edit)
+        self.rule = MelRule(self, self.palette)
+
 
 
 class PythonHighlighter(CustomHighlighter):
@@ -101,11 +112,11 @@ class PythonHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
-        self.palette = palette.PythonPalette(text_edit)
-        rule = PythonRule(self, self.palette)
-        self.set_rule(rule)
+        CustomHighlighter.__init__(self, text_edit)
 
-        super(PythonHighlighter, self).__init__(text_edit)
+        self.palette = palette.PythonPalette(text_edit)
+        self.rule = PythonRule(self, self.palette)
+
 
 class Rule(object):
     """

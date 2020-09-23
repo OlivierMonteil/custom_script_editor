@@ -4,7 +4,7 @@ from PySide2 import QtWidgets, QtCore, QtGui
 import shiboken2 as shiboken
 
 
-from custom_script_editor import syntax_highlight as sh
+from custom_script_editor import syntax_highlight
 from custom_script_editor import palette
 
 from maya.OpenMayaUI import MQtUtil
@@ -109,11 +109,11 @@ class PaletteEditor(QtWidgets.QMainWindow):
         self.sample_text.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
         if txt_type == 'mel':
-            self.highlighter = sh.MelHighlighter(self.sample_text)
+            self.highlighter = syntax_highlight.MelHighlighter(self.sample_text)
         elif txt_type == 'python':
-            self.highlighter = sh.PythonHighlighter(self.sample_text)
+            self.highlighter = syntax_highlight.PythonHighlighter(self.sample_text)
         elif txt_type == 'log':
-            self.highlighter = sh.LogHighlighter(self.sample_text)
+            self.highlighter = syntax_highlight.LogHighlighter(self.sample_text)
 
         self.highlighter.set_theme(theme)
 
@@ -218,12 +218,21 @@ def closeExisting(maya_ui_qt):
             break
 
 
-def run():
+def run(pos=None):
     maya_ui = MQtUtil.mainWindow()
     maya_ui_qt = shiboken.wrapInstance(long(maya_ui), QtWidgets.QMainWindow)
 
     closeExisting(maya_ui_qt)
 
     window = PaletteEditor('python', 'atom-OneDark', maya_ui_qt)
-
     window.show()
+
+    # center window on mouse position
+    if pos:
+        window_size = window.size()
+        centered_pos = (
+            pos.x() -window_size.width()/2,
+            pos.y() -window_size.height()/2,
+        )
+
+        window.move(*centered_pos)

@@ -28,6 +28,7 @@ from custom_script_editor import syntax_highlight
 from custom_script_editor import keys
 from custom_script_editor import snippets
 from custom_script_editor import palette
+from custom_script_editor import palette_editor
 from custom_script_editor import constants as kk
 
 
@@ -175,10 +176,11 @@ def script_tools_menu(menu):
     pos = QtGui.QCursor().pos()
     tools_menu.run(pos)
 
-def palette_editor_menu(menu):
+def run_palette_editor(menu):
     """ Run "Edit palette..." menu. """
 
-    print '// [Custom Script Editor] Warning : "Edit palette..." not Implemented yet.'
+    pos = QtGui.QCursor().pos()
+    palette_editor.run(pos)
 
 def remove_maya_highlight(widget):
     """
@@ -252,7 +254,7 @@ def add_custom_menus():
             p=main_menu,
             radialPosition="E",
             label='Edit palette...',
-            command=palette_editor_menu
+            command=run_palette_editor
         )
 
 def is_valid_tab_name(name, exlude_mel=False):
@@ -280,7 +282,7 @@ def customize_script_editor(*args):
         remove_maya_highlight(log_field)      # remove maya's default QSyntaxHighlighter
         highlight = syntax_highlight.LogHighlighter(log_field)
 
-        mc.evalDeferred(highlight.rehighlight, lp=True)
+        highlight.rehighlight()
 
     se_tab_lay = get_scripts_tab_lay()
     if not se_tab_lay:
