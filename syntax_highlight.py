@@ -472,7 +472,7 @@ class LogRule(Rule):
         """
 
         # set info, warning, error and success messages rules
-        message_regex = '[ ]*%(char)s(.)+(%(type)s[ ]*:)'
+        message_regex = '^\s*%(char)s(.)+(%(type)s\s*:)'
 
         rules = [
             (
@@ -482,7 +482,7 @@ class LogRule(Rule):
         ]
 
         # info lines with '//' or '#' and no message type specified
-        rules += [('[ ]*%s(.)+' % c, self.styles['info']) for c in ('//', '#')]
+        rules += [('^\s*%s(.)+' % c, self.styles['info']) for c in ('//', '#')]
 
         return rules
 
@@ -570,7 +570,7 @@ class MelRule(Rule):
         rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
 
         rules += [('^\s*\w+', 0, self.styles['called'])]
-        rules += [('-(\w+)([ ]*\w*)', 1, self.styles['flags'])]
+        rules += [('-(\w+)(\s*\w*)', 1, self.styles['flags'])]
         rules += [('(\".*\")', 1, self.styles['string'])]
 
         # $variables rules
@@ -680,7 +680,7 @@ class PythonRule(Rule):
 
 def is_mel_line(line):
     # one-line command (ends with ";")
-    if re.match('^\s*\w+([ ]+\(*\-.+([ ]\w+)*\)*)*(\(*[ ]+\"*.+\"*\)*)*;', line):
+    if re.match('^\s*\w+(\s+\(*\-.+(\s\w+)*\)*)*(\(*\s+\"*.+\"*\)*)*;', line):
         return True
     if re.match('^\s*/\\*', line):                      # /* docstrings
         return True
