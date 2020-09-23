@@ -436,7 +436,7 @@ class LogRule(Rule):
         self.current_rule = 'log'
 
         self.rules = self.get_rules()
-        self.get_blocking_rules = self.get_blocking_rules()
+        self.blocking_rules = self.get_blocking_rules()
         self.message_rules = self.get_message_rules()
 
         self.mel_rules = MelRule(highlighter, mel_palette)
@@ -451,8 +451,14 @@ class LogRule(Rule):
         used, all MEL, Python and self rules will be ignored.
         """
 
-        # printed Python objects (like <module 'maya' from '...'>) rule
-        rules = [('(?<!\")(<\s*\w+\s+\'.+\'\s+from\s+\'.+\'>)(?!\")', 0, self.styles['special'])]
+        # printed Python objects (like <module 'maya' from '...'>) rule if not in string.
+        rules = [
+            (
+                '(?<![\"\'])\s*(<\s*\w+\s+\'.+\'\s+from\s+\'.+\'>)\s*(?![\"\'])',
+                1,
+                self.styles['special']
+            )
+        ]
 
         return rules
 
@@ -499,7 +505,7 @@ class LogRule(Rule):
 
             block_next = False
             # apply blocking rules
-            for pattern, nth, txt_format in self.get_blocking_rules:
+            for pattern, nth, txt_format in self.blocking_rules:
                 match = re.search(pattern, line)
 
                 if match:
@@ -710,6 +716,7 @@ def is_mel_line(line):
         return True
     if re.search(functions_regex % 'catchQuiet', line):      # catchQuiet (...) declaration
         return True
+
     return False
 
 
