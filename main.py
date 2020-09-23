@@ -102,7 +102,7 @@ def get_logs_text_edit():
     script_editor = get_script_editor()
     if not script_editor:
         return None
-        
+
     text_edits = get_text_edits(script_editor)
 
     for te in text_edits:
@@ -278,6 +278,8 @@ def customize_script_editor(*args):
     Iterate every tab from Script Editor and apply PythonHighlighter,
     KeysHandler and SnippetsHandler if required.
     """
+
+    print get_script_editor()
 
     # highlight the Script Editor logs panel
     log_field = get_logs_text_edit()

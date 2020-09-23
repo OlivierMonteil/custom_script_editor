@@ -451,10 +451,21 @@ class LogRule(Rule):
         used, all MEL, Python and self rules will be ignored.
         """
 
-        # printed Python objects (like <module 'maya' from '...'>) rule if not in string.
+        # printed Python modules or methods (like <module 'maya' from '...'>)
+        # rule, if not in string.
         rules = [
             (
-                '(?<![\"\'])\s*(<\s*\w+\s+\'.+\'\s+from\s+\'.+\'>)\s*(?![\"\'])',
+                '(?<![\"\'])(<\s*\w+\s+\'.+\'\s+from\s+\'.+\'>)(?![\"\'])',
+                1,
+                self.styles['special']
+            )
+        ]
+
+        # printed Python objects (like <PySide2.QtWidgets.QWidget) rule if
+        # not in string.
+        rules = [
+            (
+                '(?<![\"\'])(<\s*.+\s+object at\s+.+>\s*)(?![\"\'])',
                 1,
                 self.styles['special']
             )
