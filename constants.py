@@ -2,6 +2,8 @@
 Scripts constant values.
 """
 
+import os
+
 VALID_TABS_REGEX = ['MEL', 'Python', '[\w\-_]+(.py)$']
 CUSTOM_MENU_NAME = 'CustomMenu'
 SNIPPETS_BOX_NAME = 'SnippetBox'

@@ -55,7 +55,7 @@ class QRegexSimulator(QtWidgets.QMainWindow):
         # add keys handler
         keys_handler = keys.KeysHandler('Python', self.script_field)
         self.script_field.installEventFilter(keys_handler)
-        highlight = syntax_highlight.PythonHighlighter(self.script_field)
+        highlight = syntax_highlight.LogHighlighter(self.script_field)
 
         script_dock.setWidget(self.script_field)
 

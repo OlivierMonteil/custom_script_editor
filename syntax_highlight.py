@@ -20,33 +20,6 @@ from custom_script_editor import palette
 BASE_MESSAGES = ['warning', 'success', 'info', 'error']
 
 
-class Logger(object):
-    def __init__(self):
-
-        log_root = os.path.expanduser('~/tmp/log')
-        if not os.path.isdir(log_root):
-            os.makedirs(log_root)
-
-        # create some unique name for the log
-        date = datetime.datetime.now()
-        filename = 'custom_script_editor_{}{}{}_{}{}.log'.format(
-            date.year,
-            str(date.month).zfill(2),
-            str(date.day).zfill(2),
-            str(date.hour).zfill(2),
-            str(date.minute).zfill(2)
-        )
-
-        self.file = os.path.join(log_root, filename)
-
-    def error(self, message):
-        with open(self.file, 'a') as opened_file:
-            message = '# [Custom Script Editor] Error :\n' +str(message) +'\n'
-            opened_file.write(message)
-
-LOGGER = Logger()
-
-
 class CustomHighlighter(QtGui.QSyntaxHighlighter):
 
     def __init__(self, text_edit):
@@ -71,10 +44,12 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
         Qt re-implementation. Apply syntax highlighting to the given line.
         """
 
-        try:
-            self.rule.apply(line)
-        except:
-            LOGGER.error(traceback.format_exc())
+        # For unknown reeason, the LogHighlighter may loose its attributes at one
+        # time... In this case, just re-intitiate its rules and palettes.
+        if not hasattr(self, 'rule'):
+            self.init_rule()
+
+        self.rule.apply(line)
 
     def set_theme(self, theme):
         self.palette.apply_theme(self.text_edit, theme)
@@ -97,6 +72,13 @@ class LogHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
+        self.init_rule(text_edit)
+        CustomHighlighter.__init__(self, text_edit)
+
+    def init_rule(self, text_edit=None):
+        if text_edit is None:
+            text_edit = self.parent()
+
         self.palette = palette.LogPalette(text_edit)
         self._python_palette = palette.PythonPalette(text_edit)
         self._mel_palette = palette.MelPalette(text_edit)
@@ -108,7 +90,6 @@ class LogHighlighter(CustomHighlighter):
             self._mel_palette
         )
 
-        CustomHighlighter.__init__(self, text_edit)
 
 class MelHighlighter(CustomHighlighter):
     """
@@ -121,10 +102,15 @@ class MelHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
+        self.init_rule(text_edit)
+        CustomHighlighter.__init__(self, text_edit)
+
+    def init_rule(self, text_edit=None):
+        if text_edit is None:
+            text_edit = self.parent()
+
         self.palette = palette.MelPalette(text_edit)
         self.rule = MelRule(self, self.palette)
-
-        CustomHighlighter.__init__(self, text_edit)
 
 
 class PythonHighlighter(CustomHighlighter):
@@ -138,10 +124,15 @@ class PythonHighlighter(CustomHighlighter):
             text_edit (QTextEdit)
         """
 
+        self.init_rule(text_edit)
+        CustomHighlighter.__init__(self, text_edit)
+
+    def init_rule(self, text_edit=None):
+        if text_edit is None:
+            text_edit = self.parent()
+
         self.palette = palette.PythonPalette(text_edit)
         self.rule = PythonRule(self, self.palette)
-
-        CustomHighlighter.__init__(self, text_edit)
 
 
 class Rule(object):
@@ -483,17 +474,17 @@ class LogRule(Rule):
         """
 
         # set info, warning, error and success messages rules
-        message_regex = '^\s*%(char)s(.)+(%(type)s\s*:)'
-
         rules = [
             (
-                message_regex % {'char': c, 'type': x},
+                '^\s*%(char)s(.)+(%(type)s\s*:)' % {'char': c, 'type': x},
                 self.styles[x]
             ) for c in ('//', '#') for x in BASE_MESSAGES
         ]
 
-        # info lines with '//' or '#' and no message type specified
-        rules += [('^\s*%s(.)+' % c, self.styles['info']) for c in ('//', '#')]
+        # info lines with '//' or '#' at the start of the line
+        rules += [('^\s*%s.*' % c, self.styles['info']) for c in ('//', '#')]
+        # info lines with '//' or '#' at the end of the line
+        rules += [('.*%s\s*$' % c, self.styles['info']) for c in ('//', '#')]
 
         return rules
 
@@ -549,9 +540,9 @@ class LogRule(Rule):
             for pattern, nth, txt_format in self.rules or ():
                 self.apply_rule(line, pattern, nth, txt_format)
 
+        # silent errors so we don't fall into a print loop...
         except:
-            LOGGER.error(traceback.format_exc())
-            return
+            pass
 
     def apply_strings_and_comments_style(self, line):
         return
@@ -581,7 +572,7 @@ class MelRule(Rule):
         rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
 
         rules += [('^\s*\w+', 0, self.styles['called'])]
-        rules += [('-(\w+)(\s*\w*)', 1, self.styles['flags'])]
+        rules += [('-(\w+)', 1, self.styles['flags'])]
         rules += [('(\".*\")', 1, self.styles['string'])]
 
         # $variables rules
@@ -643,24 +634,24 @@ class PythonRule(Rule):
         # add python "self" rule
         rules += [('\\b(self)\\b', 0, self.styles['self'])]
 
-        # add python "builtins" words rules
-        rules += [('\\b%s\\b' % x, 0, self.styles['special'])
-                  for x in kk.PYTHON_BUILTINS]
-
         rules += [
                      # declared functions rule
                      ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
-                     # inherited classes rule
-                     ('(\\bclass\\b\s*_*\w+_*\s*\()(.+)(\))', 2, self.styles['class_arg']),
-                     # intermediates rule
-                     ('(\.)(\w+)', 2, self.styles['interm']),
                      # called functions rule
                      ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
+                     # add python "builtins" words rules
+        ]
+        # add python "builtins" words rules
+        rules += [('\\b%s\\b' % x, 0, self.styles['special']) for x in kk.PYTHON_BUILTINS]
+
+        rules += [
+                     # inherited classes rule
+                     ('(\\bclass\\b\s*_*\w+_*\s*\()(.+)(\))', 2, self.styles['class_arg']),
                      # declared classes rule
-                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name'])
+                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name']),
+                     # intermediates rule
+                     ('(\.)(\w+)', 2, self.styles['interm'])
                  ]
-
-
 
         rules += [
                      # kwargs first part rule
@@ -690,8 +681,8 @@ class PythonRule(Rule):
                         ###########################
 
 def is_mel_line(line):
-    # one-line command (ends with ";")
-    if re.match('^\s*\w+(\s+\(*\-.+(\s\w+)*\)*)*(\(*\s+\"*.+\"*\)*)*;', line):
+    # lines that ends with ";"
+    if re.match('.+;$', line):
         return True
     if re.match('^\s*/\\*', line):                      # /* docstrings
         return True
@@ -776,6 +767,9 @@ def is_python_line(line):
     if re.search(loops_regex % 'except', line):          # except (...) : declaration
         return True
     if re.search(loops_regex % 'finally', line):         # finally (...) : declaration
+        return True
+
+    if re.search('\s*print\s*(?!\()', line):            # print call without ()
         return True
 
     return False

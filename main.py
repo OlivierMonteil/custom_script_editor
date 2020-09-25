@@ -279,8 +279,6 @@ def customize_script_editor(*args):
     KeysHandler and SnippetsHandler if required.
     """
 
-    print get_script_editor()
-
     # highlight the Script Editor logs panel
     log_field = get_logs_text_edit()
     if log_field and child_class_needed(log_field, syntax_highlight.LogHighlighter):
@@ -307,7 +305,6 @@ def customize_script_editor(*args):
 
         for t in text_edits or ():
             try:
-
                 if is_mel_tab:
                     # add PythonHighlighter on QTextEdit if not already added
                     if child_class_needed(t, syntax_highlight.MelHighlighter):
