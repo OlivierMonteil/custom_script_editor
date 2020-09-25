@@ -5,3 +5,10 @@
   //
 // simple comment line.
 unknown-type line...
+
+# Error: line 13: 'Toto' object has no attribute 'titi'
+Traceback (most recent call last):
+  File "<maya console>", line 1, in <module>
+  File "toto.py", line 123, in get_titi_from_toto
+    if Toto.titi() is None:
+# AttributeError: 'Toto' object has no attribute 'titi' #

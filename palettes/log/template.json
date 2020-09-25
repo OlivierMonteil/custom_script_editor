@@ -8,6 +8,10 @@
             "Warnings",
             null
         ],
+        "traceback": [
+            "Traceback",
+            null
+        ],
         "error": [
             "Errors",
             null

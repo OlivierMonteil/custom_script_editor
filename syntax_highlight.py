@@ -53,9 +53,9 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
 
     def set_theme(self, theme):
         self.palette.apply_theme(self.text_edit, theme)
-        self.update()
+        self.update_rule()
 
-    def update(self):
+    def update_rule(self):
         self.rule.update()
         self.rehighlight()
 
@@ -165,6 +165,11 @@ class Rule(object):
         self.styles = self.palette.char_formatted()
         self.rules = self.get_rules()
 
+        if hasattr(self, 'blocking_rules'):
+            self.blocking_rules = self.get_blocking_rules()
+        if hasattr(self, 'message_rules'):
+            self.message_rules = self.get_message_rules()
+
     def apply_rule(self, line, expression, nth, txt_format):
         """
         Args:
@@ -202,13 +207,13 @@ class Rule(object):
 
         # strings, docstrings and comments rules, using block states to propagate
         # un-closed rules from one line to another
-        self.apply_strings_and_comments_style(line)
+        self.apply_multiline_style(line)
 
     def get_rules(self):
         """ Returns empty list by default. """
         return []
 
-    def apply_strings_and_comments_style(self, line):
+    def apply_multiline_style(self, line):
         """
         Args:
             line (str)
@@ -486,6 +491,14 @@ class LogRule(Rule):
         # info lines with '//' or '#' at the end of the line
         rules += [('.*%s\s*$' % c, self.styles['info']) for c in ('//', '#')]
 
+        # info lines with '[] msg:' at the start of the line
+        rules += [
+            (
+                '^\s*\[\w+\]\s*(%s\s*:)' % x,
+                self.styles[x]
+            ) for x in BASE_MESSAGES
+        ]
+
         return rules
 
     def apply(self, line):
@@ -497,6 +510,9 @@ class LogRule(Rule):
         """
 
         try:
+            if self.traceback_applied(line):
+                return
+
             # apply message rules, and skip next if some rule matches (as applied
             # on the whole line)
             for pattern, txt_format in self.message_rules:
@@ -544,9 +560,33 @@ class LogRule(Rule):
         except:
             pass
 
-    def apply_strings_and_comments_style(self, line):
+    def apply_multiline_style(self, line):
         return
 
+    def traceback_applied(self, line):
+        """
+        Args:
+            line (str)
+
+        Handle Tracebacks.
+        """
+
+        # propagate previous line's state
+        self.setCurrentBlockState(self.previousBlockState())
+
+        if re.match('^(#\s)*Traceback', line):
+            self.setCurrentBlockState(5)
+            self.setFormat(0, len(line), self.styles['traceback'])
+            return True
+
+        if self.currentBlockState() == 5:
+            if re.match('^(#\s)*\s+', line):
+                self.setFormat(0, len(line), self.styles['traceback'])
+                return True
+            else:
+                self.setCurrentBlockState(-1)
+
+        return False
 
 
 class MelRule(Rule):
@@ -625,22 +665,8 @@ class PythonRule(Rule):
         # digits rule
         rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
 
-        # add operators rules
-        rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
-
-        # add python keywords rules
-        rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in kk.PYTHON_KEYWORDS]
-
         # add python "self" rule
         rules += [('\\b(self)\\b', 0, self.styles['self'])]
-
-        rules += [
-                     # declared functions rule
-                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
-                     # called functions rule
-                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
-                     # add python "builtins" words rules
-        ]
         # add python "builtins" words rules
         rules += [('\\b%s\\b' % x, 0, self.styles['special']) for x in kk.PYTHON_BUILTINS]
 
@@ -650,8 +676,19 @@ class PythonRule(Rule):
                      # declared classes rule
                      ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name']),
                      # intermediates rule
-                     ('(\.)(\w+)', 2, self.styles['interm'])
+                     ('(\.)(\w+)', 2, self.styles['interm']),
+                     # declared functions rule
+                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
+                     # called functions rule
+                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called'])
+                     # add python "builtins" words rules
                  ]
+
+        # add python keywords rules
+        rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in kk.PYTHON_KEYWORDS]
+
+        # add operators rules
+        rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
 
         rules += [
                      # kwargs first part rule

@@ -47,7 +47,7 @@ class Palette(object):
         result_dict = {}
 
         for attr in self.palette or ():
-            if attr in self.specific_formats:
+            if self.specific_formats and attr in self.specific_formats:
                 result_dict[attr] = char_format(
                     self.get_color(attr),
                     self.specific_formats[attr]
