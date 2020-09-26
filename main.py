@@ -30,17 +30,15 @@ from custom_script_editor import snippets
 from custom_script_editor import palette
 from custom_script_editor import palette_editor
 from custom_script_editor import constants as kk
+from custom_script_editor.multi_cursors import MultiCursor
 
 
 class ScriptEditorDetector(QtCore.QObject):
 
     """
-    Custom eventFilter installed on Maya's main window that will re-set highlight
-    and connections on Script Editor (with evalDeferred).
+    Custom eventFilter installed on Maya's main window that will set highlight,
+    custom menu and hotkeys on Script Editor QTextEdits (with evalDeferred).
     """
-
-    def __init__(self, parent=None):
-        super(ScriptEditorDetector, self).__init__(parent)
 
     def eventFilter(self, obj, event):
         # (no need to run set_customize_on_tab_change and customize_script_editor
@@ -303,34 +301,47 @@ def customize_script_editor(*args):
         widget = shiboken.wrapInstance(long(ptr), QtWidgets.QWidget)
         text_edits = get_text_edits(widget)
 
-        for t in text_edits or ():
+        for txt_edit in text_edits or ():
             try:
                 if is_mel_tab:
                     # add PythonHighlighter on QTextEdit if not already added
-                    if child_class_needed(t, syntax_highlight.MelHighlighter):
-                        remove_maya_highlight(t)      # remove maya's default QSyntaxHighlighter
-                        highlight = syntax_highlight.MelHighlighter(t)
+                    if child_class_needed(txt_edit, syntax_highlight.MelHighlighter):
+                        remove_maya_highlight(txt_edit)      # remove maya's default QSyntaxHighlighter
+                        highlight = syntax_highlight.MelHighlighter(txt_edit)
                 else:
                     # add PythonHighlighter on QTextEdit if not already added
-                    if child_class_needed(t, syntax_highlight.PythonHighlighter):
-                        remove_maya_highlight(t)      # remove maya's default QSyntaxHighlighter
-                        highlight = syntax_highlight.PythonHighlighter(t)
+                    if child_class_needed(txt_edit, syntax_highlight.PythonHighlighter):
+                        remove_maya_highlight(txt_edit)      # remove maya's default QSyntaxHighlighter
+                        highlight = syntax_highlight.PythonHighlighter(txt_edit)
 
                 # install KeysHandler filterEvent on QTextEdit if not already installed
-                if child_class_needed(t, keys.KeysHandler):
+                if child_class_needed(txt_edit, keys.KeysHandler):
                     tab_type = 'MEL' if is_mel_tab else 'Python'
-                    key_handle = keys.KeysHandler(tab_type, parent=t)
-                    t.installEventFilter(key_handle)
+                    key_handle = keys.KeysHandler(tab_type, parent=txt_edit)
+                    txt_edit.installEventFilter(key_handle)
 
                 # install SnippetsHandler filterEvent on QTextEdit if not already installed
-                if child_class_needed(t, snippets.SnippetsHandler):
-                    snippets_handle = snippets.SnippetsHandler(t, form_lay)
-                    t.installEventFilter(snippets_handle)
+                if child_class_needed(txt_edit, snippets.SnippetsHandler):
+                    snippets_handle = snippets.SnippetsHandler(txt_edit, form_lay)
+                    txt_edit.installEventFilter(snippets_handle)
+
+                script_editor = get_script_editor()
+                mcursors_handle = get_multi_cursors_handle(script_editor)
+                if not mcursors_handle:
+                    mcursors_handle = MultiCursor(script_editor)
+
+                mcursors_handle.install_if_not_already(txt_edit)
 
             except Exception as e:
                 print '// [Custom Script Editor] Error :', e
 
+
     add_custom_menus()
+
+def get_multi_cursors_handle(widget):
+    for child in widget.children() or ():
+        if isinstance(child, MultiCursor):
+            return child
 
 
 def run():
@@ -342,7 +353,7 @@ def run():
     """
 
     maya_ui = OMUI.MQtUtil.mainWindow()
-    maya_ui_qt = shiboken.wrapInstance(long(maya_ui), QtWidgets.QWidget)
+    maya_ui_qt = shiboken.wrapInstance(long(maya_ui), QtWidgets.QMainWindow)
 
     # install ScriptEditorDetector event filter on Maya window if not already
     if child_class_needed(maya_ui_qt, ScriptEditorDetector):

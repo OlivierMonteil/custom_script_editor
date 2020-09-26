@@ -613,7 +613,7 @@ class MelRule(Rule):
 
         rules += [('^\s*\w+', 0, self.styles['called'])]
         rules += [('-(\w+)', 1, self.styles['flags'])]
-        rules += [('(\".*\")', 1, self.styles['string'])]
+        rules += [('(\"\w*\")', 1, self.styles['string'])]
 
         # $variables rules
         rules += [('\$\w+', 0, self.styles['variables'])]

@@ -405,6 +405,7 @@ class PresetsDialog(QtWidgets.QDialog):
         layout.addWidget(self.list_view)
         if create:
             self.name_field = QtWidgets.QLineEdit(self)
+            layout.addWidget(self.name_field)
         layout.addWidget(buttons_widget)
 
         self.list_view.doubleClicked.connect(self.handle_double_click)

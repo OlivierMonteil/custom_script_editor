@@ -405,11 +405,15 @@ class SnippetsHandler(QtCore.QObject):
         if error return empty list so the other snippets methods will be called.
         """
 
-        if not word or not '.' in word:
+        if not word:
+            return None
+        if not '.' in word:
+            if word in sys.modules:
+                return dir(sys.modules[word])
             return None
 
         cuts = [x for x in word.split('.')[:-1] if x]
-        if cuts[0] not in sys.modules:
+        if not cuts or cuts[0] not in sys.modules:
             return None
 
         try:
