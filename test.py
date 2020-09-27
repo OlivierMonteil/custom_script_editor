@@ -1,15 +1,21 @@
+"""
+Test Window with a single QTextEdit for quick tests out of Maya.
+"""
+
+import os
 import sys
-
-ROOT = r'C:\Users\Olivier\Documents\maya\scripts\custom_script_editor'
-if not ROOT in sys.path:
-    sys.path.append(ROOT)
-
-from multi_cursors import MultiCursor
-import keys
 
 from PySide2 import QtWidgets
 
-TEXT = """word = self.lineEdit.text()
+ROOT = os.path.dirname(os.path.dirname(__file__))
+if not ROOT in sys.path:
+    sys.path.append(ROOT)
+
+from custom_script_editor.multi_cursors import MultiCursorManager
+from custom_script_editor import keys
+
+
+SAMPLE_TEXT = """word = self.lineEdit.text()
 
         extraSelections = []
 
@@ -35,7 +41,6 @@ TEXT = """word = self.lineEdit.text()
 """
 
 
-
 class MultiEditText(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
@@ -45,19 +50,35 @@ class MultiEditText(QtWidgets.QWidget):
         txt_edit = QtWidgets.QTextEdit(self)
         txt_edit.setObjectName('TestQTextEdit')
         lay.addWidget(txt_edit)
-        txt_edit.setText(TEXT)
+        txt_edit.setText(SAMPLE_TEXT)
 
-        mcursors_handle = get_multi_cursors_handle(self)
-        if not mcursors_handle:
-            mcursors_handle = MultiCursor(self)
+        # install KeysHandler filterEvent on QTextEdit if not already installed
+        if child_class_needed(txt_edit, keys.KeysHandler):
+            key_handle = keys.KeysHandler('Python', parent=txt_edit)
+            txt_edit.installEventFilter(key_handle)
 
-        mcursors_handle.install_if_not_already(txt_edit)
+        if child_class_needed(txt_edit, MultiCursorManager):
+            mcursors_handle = MultiCursorManager(txt_edit)
+            mcursors_handle.install(txt_edit)
 
 
-def get_multi_cursors_handle(widget):
-    for child in widget.children() or ():
-        if isinstance(child, MultiCursor):
-            return child
+def child_class_needed(widget, target_class):
+    """
+    Args:
+        widget (QWidget)
+        target_class (class)
+
+    Returns:
+        (bool)
+
+    Check whether <target_class> is found in <widget>'s children or not.
+    (used to detect if eventFilters or SynthaxHighlighters are installed on widget)
+    """
+
+    for child in widget.children():
+        if isinstance(child, target_class):
+            return False
+    return True
 
 
 if __name__ == '__main__':

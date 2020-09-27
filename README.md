@@ -12,4 +12,23 @@ should be customized at startup :
 Sometimes the Custom Menu added to the Script Editor's hotbox may not appear properly.
 Switching tab should add it back.
 
-WIP : the Palette Editor is in progress.
+## Features
+- synthax highlight for MEL and Python tabs.
+- synthax highlight for Script Editor's console.
+
+- multi-line editing (add cursors on Ctrl +LMB, work in progress).
+- snippets (auto-completion) manager (for now, not compatible with the multi-line editing).
+
+- some useful hotkeys:
+    - `Ctrl +Shift +D` : lines duplication
+    - `Ctrl +/` : toggle blocks comment
+    - `Ctrl +UP/DOWN` : move lines
+    - `Ctrl +V` : (multi-paste enabled)
+    - embracing characters : `()`, `{}`, `[]`, `\`\``, `""`, `''`
+
+- some tools are also available in the Script Editor's hotbox menu:
+    - Toggle Word-wrap on console menu
+    - Toggle Snippets wrap on tabs menu
+    - Palette editing (wip)
+    - dir() navigation tool
+    - regex tool (wip, QRegex only for now)

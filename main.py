@@ -4,24 +4,15 @@ Script for customizing Maya's script editor hightlights and hotkeys.
 
 
 import re
+import traceback
 
-try:
-    from PySide2 import QtWidgets, QtCore, QtGui
-except ImportError:
-    from PySide import QtGui, QtCore
-    from PySide import QtGui as QtWidgets
+from PySide2 import QtWidgets, QtCore, QtGui
 
-try:
-    import maya.cmds as mc
-    from maya import mel
-    import maya.OpenMayaUI as OMUI
-except:
-    pass
+import maya.cmds as mc
+from maya import mel
+import maya.OpenMayaUI as OMUI
 
-try:
-    import shiboken2 as shiboken
-except ImportError:
-    import shiboken
+import shiboken2 as shiboken
 
 from custom_script_editor.tools import menu as tools_menu
 from custom_script_editor import syntax_highlight
@@ -30,7 +21,7 @@ from custom_script_editor import snippets
 from custom_script_editor import palette
 from custom_script_editor import palette_editor
 from custom_script_editor import constants as kk
-from custom_script_editor.multi_cursors import MultiCursor
+from custom_script_editor.multi_cursors import MultiCursorManager
 
 
 class ScriptEditorDetector(QtCore.QObject):
@@ -304,6 +295,7 @@ def customize_script_editor(*args):
         for txt_edit in text_edits or ():
             if not 'cmdScrollFieldExecuter' in txt_edit.objectName():
                 continue
+
             try:
                 if is_mel_tab:
                     # add PythonHighlighter on QTextEdit if not already added
@@ -328,22 +320,17 @@ def customize_script_editor(*args):
                     txt_edit.installEventFilter(snippets_handle)
 
                 script_editor = get_script_editor()
-                mcursors_handle = get_multi_cursors_handle(script_editor)
-                if not mcursors_handle:
-                    mcursors_handle = MultiCursor(script_editor)
-
-                mcursors_handle.install_if_not_already(txt_edit)
+                # install MultiCursorManager filterEvent on QTextEdit if not already installed
+                if child_class_needed(txt_edit, MultiCursorManager):
+                    mcursors_handle = MultiCursorManager(txt_edit)
+                    mcursors_handle.install(txt_edit)
 
             except Exception as e:
-                print '// [Custom Script Editor] Error :', e
+                print '# [Custom Script Editor] Error : {} #'.format(e)
+                traceback.print_exc()
 
 
     add_custom_menus()
-
-def get_multi_cursors_handle(widget):
-    for child in widget.children() or ():
-        if isinstance(child, MultiCursor):
-            return child
 
 
 def run():
@@ -370,3 +357,5 @@ def run():
     if script_editor_opened():
         mc.evalDeferred(customize_script_editor, lp=True)
         mc.evalDeferred(set_customize_on_tab_change, lp=True)
+
+    print ('# [Custom Script Editor] Success: activated. #')
