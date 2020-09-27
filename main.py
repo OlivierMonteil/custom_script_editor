@@ -302,6 +302,8 @@ def customize_script_editor(*args):
         text_edits = get_text_edits(widget)
 
         for txt_edit in text_edits or ():
+            if not 'cmdScrollFieldExecuter' in txt_edit.objectName():
+                continue
             try:
                 if is_mel_tab:
                     # add PythonHighlighter on QTextEdit if not already added

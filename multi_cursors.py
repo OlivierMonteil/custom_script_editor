@@ -10,11 +10,26 @@ class MultiCursor(QtCore.QObject):
     events_trigger = [
         QtCore.QEvent.MouseButtonPress
     ]
+    cursor_colors = [
+        (94, 132, 255),
+        (117, 229, 92)
+    ]
 
     def __init__(self, script_editor):
         super(MultiCursor, self).__init__(script_editor)
 
-        self.text_edits = []
+        self.txt_edits_list = []
+        self.cursors_list = []
+        self.multi_cursors_list = []
+        self.overlays_list = []
+        self.repaint_region = None
+        self.idx = -1
+
+        # set cursor blinking timer
+        self.timer = QtCore.QTimer(interval = 500)
+        self.timer.timeout.connect(self.blink_cursors)
+
+        self.cursor_state = True    # used to switch cursor's colors
 
     def eventFilter(self, obj, event):
         # (no need to run set_customize_on_tab_change and customize_script_editor
@@ -23,169 +38,107 @@ class MultiCursor(QtCore.QObject):
         if not event.type() in self.events_trigger:
             return False
 
-        if event.button() & QtCore.Qt.LeftButton:
-            if not event.modifiers() & QtCore.Qt.ControlModifier:
-                return False
+        txt_edit = obj.parent()
 
-            textEdit = obj.parentWidget()
-            print (textEdit)
-            print (self.text_edits)
+        if False:
+            key = event.key()
+
+            if event.key() == QtCore.Qt.Key_Backspace:
+                self.multi_exec(self.multi_cursor().deletePreviousChar)
+                return
+
+            elif event.key() == QtCore.Qt.Key_Delete:
+                self.multi_exec(self.multi_cursor().deleteChar)
+                return
+
+
+            else:
+                if event.modifiers() & QtCore.Qt.ControlModifier:
+                    if key == QtCore.Qt.Key_V:
+                        text = QtGui.QClipboard().text()
+                        self.multi_exec(self.multi_cursor().insertText, text)
+                        return
+
+                else:
+                    text = event.text()
+                    self.multi_exec(self.multi_cursor().insertText, text)
+                    return
+
+            QtWidgets.QTextEdit.keyPressEvent(self.txt_edit(()), event)
+
+        elif event.type() == QtCore.QEvent.MouseButtonPress:
+            if event.button() & QtCore.Qt.LeftButton:
+                pos = event.pos()
+                # get new QTextCursor at mouse position
+                new_cursor = txt_edit.cursorForPosition(pos)
+
+                if event.modifiers() & QtCore.Qt.ControlModifier:
+                    self.cursors_list[self.idx].append(new_cursor)
+
+                    self.idx = self.txt_edits_list.index(txt_edit)
+
+                    if not self.timer.isActive():
+                        self.timer.start()
+
+                    return True
+
+                else:
+                    self.set_cursors([new_cursor])
+                    self.update_cursors()
+                    self.timer.stop()
 
         return False
 
+    def txt_edit(self):
+        return self.txt_edits_list[self.idx]
+    def cursors(self):
+        return self.cursors_list[self.idx]
+    def set_cursors(self, cursors):
+        self.cursors_list[self.idx] = cursors
+    def multi_cursor(self):
+        return self.multi_cursors_list[self.idx]
+    def overlay(self):
+        return self.overlays_list[self.idx]
+
     def install_if_not_already(self, txt_edit):
-        if txt_edit not in self.text_edits:
-            print ('install on', txt_edit)
+        if txt_edit in self.txt_edits_list:
+            return
 
-            txt_edit.viewport().installEventFilter(self)
-            self.text_edits.append(txt_edit)
+        txt_edit.viewport().installEventFilter(self)
+        self.txt_edits_list.append(txt_edit)
 
-            print ('// installed')
+        cursor = txt_edit.textCursor()
+        self.cursors_list.append([cursor])
+        self.multi_cursors_list.append(QtGui.QTextCursor(cursor))   # creates a copy
 
-class MultiCursorHandler_bckp(object):
-    """
-    Multi-cursors manager for QTextEdits.
-    """
+        viewport = txt_edit.viewport()
+        overlay = QtWidgets.QWidget(txt_edit)
+        overlay.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
+        overlay.move(viewport.pos().x(), viewport.pos().y())
+        self.overlays_list.append(overlay)
+        overlay.show()
 
-    cursor_colors = [
-        (94, 132, 255),
-        (117, 229, 92)
-    ]
-
-    def __init__(self, text_edit):
-        self.text_edit = text_edit
-
-        cursor = text_edit.textCursor()
-        self.cursors = [cursor]
-        self.multi_cursor = QtGui.QTextCursor(cursor)   # creates a copy
-        # set cursor blinking timer
-        self.timer = QtCore.QTimer(interval = 500)
-        self.timer.timeout.connect(self.blink_cursors)
-
-        self.overlay = QtWidgets.QWidget(text_edit.viewport().parent())
-        self.overlay.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
-        self.overlay.move(text_edit.pos().x(), text_edit.pos().y())
-
-        self.cursor_state = True    # used to switch cursor's colors
-
-        self.overwrite_methods()
-
-    def overwrite_methods(self):
-        self.text_edit.keyPressEvent = self.key_press_event
-        self.text_edit.mousePressEvent = self.mouse_press_event
-        self.overlay.paintEvent = self.paint_event
-        self.text_edit.resizeEvent = self.resize_event
+        #txt_edit.keyPressEvent = self.key_press_event
+        #txt_edit.mousePressEvent = self.mouse_press_event
+        txt_edit.paintEvent = self.paint_event
+        txt_edit.resizeEvent = self.resize_event
 
     def resize_event(self, event):
+        overlay = self.overlay()
+        txt_edit = self.txt_edit()
+
         new_size = event.size()
-        self.overlay.resize(new_size.width(), new_size.height())
-        QtWidgets.QTextEdit.resizeEvent(self.text_edit, event)
+        overlay.resize(new_size.width(), new_size.height())
+        QtWidgets.QTextEdit.resizeEvent(txt_edit, event)
+        overlay.move(txt_edit.viewport().pos().x(), txt_edit.viewport().pos().y())
 
-    def key_press_event(self, event):
-        key = event.key()
+    def relative_to_viewport(self, rect):
+        txt_edit = self.txt_edit()
+        offset_x = txt_edit.viewport().pos().x()
+        offset_y = txt_edit.viewport().pos().y()
+        rect.moveTo(rect.x() +offset_x, rect.y() +offset_y)
+        return rect
 
-        if event.key() == QtCore.Qt.Key_Backspace:
-            self.multi_exec(self.multi_cursor.deletePreviousChar)
-            return
-
-        elif event.key() == QtCore.Qt.Key_Delete:
-            self.multi_exec(self.multi_cursor.deleteChar)
-            return
-
-
-        else:
-            if event.modifiers() & QtCore.Qt.ControlModifier:
-                if key == QtCore.Qt.Key_V:
-                    text = QtGui.QClipboard().text()
-                    self.multi_exec(self.multi_cursor.insertText, text)
-                    return
-
-            else:
-                text = event.text()
-                self.multi_exec(self.multi_cursor.insertText, text)
-                return
-
-        QtWidgets.QTextEdit.keyPressEvent(self.text_edit, event)
-
-    def multi_exec(self, func, *args, **kwargs):
-        """
-        Args:
-            func (method)
-            args : all method arguments
-            kwargs : all method keyword arguments
-
-        Use self.multi_cursor to perform <func(*args, **kwargs)> at every cursor
-        position under a single edit block (for undo/redo).
-        """
-
-        self.multi_cursor.beginEditBlock()
-
-        for cursor in self.cursors:
-            if cursor.hasSelection():
-                # set the same selection
-                self.multi_cursor.setPosition(cursor.selectionStart(), cursor.MoveAnchor)
-                self.multi_cursor.movePosition(cursor.selectionEnd(), cursor.KeepAnchor)
-            else:
-                # move cursor at the same position
-                self.multi_cursor.setPosition(cursor.position(), cursor.MoveAnchor)
-
-            # run
-            func(*args, **kwargs)
-
-        self.multi_cursor.endEditBlock()
-
-    def mouse_press_event(self, event):
-        """
-        (overwrites QTextEdit's mousePressEvent)
-        Add multi-cursors on Ctrl +LMB click.
-        """
-
-        if event.button() == QtCore.Qt.LeftButton:
-            pos = event.pos()
-            # get new QTextCursor at mouse position
-            new_cursor = self.text_edit.cursorForPosition(pos)
-
-            if event.modifiers() == QtCore.Qt.ControlModifier:
-                self.cursors.append(new_cursor)
-                self.update_cursors(self.cursors)
-
-                print ('new cursor added')
-
-                if not self.timer.isActive():
-                    self.timer.start()
-
-            else:
-                old_cursors = self.cursors
-                self.cursors = [new_cursor]
-                self.update_cursors(old_cursors)
-                self.timer.stop()
-
-        QtWidgets.QTextEdit.mousePressEvent(self.text_edit, event)
-
-    def update_cursors(self, cursors):
-        """
-        Args:
-            cursors (list[QtGui.QTextCursor])
-
-        Repaint all <cursors> regions.
-        """
-
-        for cursor in cursors or ():
-            rect = self.text_edit.cursorRect(cursor)
-            self.overlay.repaint(
-                rect.x() -5,
-                rect.y() -5,
-                rect.width() +10,
-                rect.height() +10,
-            )
-
-    def blink_cursors(self):
-        """
-        Toggle self.cursor_state and repaint all cursors.
-        """
-
-        self.cursor_state = not self.cursor_state
-        self.update_cursors(self.cursors)
 
     def paint_event(self, event):
         """
@@ -194,11 +147,77 @@ class MultiCursorHandler_bckp(object):
         cursor).
         """
 
+        txt_edit = self.txt_edit()
+        overlay = self.overlay()
+
+        QtWidgets.QWidget.paintEvent(txt_edit, event)
+
         # paint multi-cursors
-        if len(self.cursors) > 1:
-            painter = QtGui.QPainter(self.overlay)
+        if len(self.cursors()) > 1:
+            painter = QtGui.QPainter(overlay)
             painter.setPen(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
 
-            for cursor in self.cursors:
-                rect = self.text_edit.cursorRect(cursor)
+            for cursor in self.cursors():
+                rect = txt_edit.cursorRect(cursor)
                 painter.drawRect(rect)
+
+    def multi_exec(self, func, *args, **kwargs):
+
+        txt_edit = self.txt_edit()
+        multi_cursor = self.multi_cursor()
+        cursors = self.cursors()
+
+        multi_cursor.beginEditBlock()
+
+        for cursor in cursors:
+            if cursor.hasSelection():
+                # set the same selection
+                multi_cursor.setPosition(cursor.selectionStart(), cursor.MoveAnchor)
+                multi_cursor.movePosition(cursor.selectionEnd(), cursor.KeepAnchor)
+            else:
+                # move cursor at the same position
+                multi_cursor.setPosition(cursor.position(), cursor.MoveAnchor)
+
+            # run
+            func(*args, **kwargs)
+
+        multi_cursor.endEditBlock()
+
+    def update_cursors(self):
+        """
+        Args:
+            cursors (list[QtGui.QTextCursor])
+
+        Repaint all <cursors> regions.
+        """
+
+        cursors = self.cursors()
+        txt_edit = self.txt_edit()
+        overlay = self.overlay()
+
+        for cursor in cursors or ():
+            rect = txt_edit.cursorRect(cursor)
+            top_left = rect.topLeft()
+            top_left = txt_edit.mapTo(overlay, top_left)
+            rect.setTopLeft(top_left)
+            # self.repaint_region = rect
+            # overlay.repaint(
+            #     rect.x() -5,
+            #     rect.y() -5,
+            #     rect.width() +10,
+            #     rect.height() +10
+            # )
+            txt_edit.repaint(
+                rect.x() -5,
+                rect.y() -5,
+                rect.width() +10,
+                rect.height() +10
+            )
+
+    def blink_cursors(self):
+        """
+        Toggle self.cursor_state and repaint all cursors.
+        """
+
+        self.cursor_state = not self.cursor_state
+        self.update_cursors()

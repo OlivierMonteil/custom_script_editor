@@ -43,6 +43,7 @@ class MultiEditText(QtWidgets.QWidget):
         super(MultiEditText, self).__init__(parent)
         lay = QtWidgets.QHBoxLayout(self)
         txt_edit = QtWidgets.QTextEdit(self)
+        txt_edit.setObjectName('TestQTextEdit')
         lay.addWidget(txt_edit)
         txt_edit.setText(TEXT)
 
