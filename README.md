@@ -9,7 +9,7 @@ should be customized at startup :
 
 `python("from custom_script_editor import main as cse_main\ncse_main.run()");`
 
-Sometimes the Custom Menu added to the Script Editor's hotbox may not appear properly.
+**Warning:** Sometimes the Custom Menu added to the Script Editor's hotbox may not appear properly.
 Switching tab should add it back.
 
 ## Features
