@@ -24,6 +24,8 @@ class MultiCursorManager(QtCore.QObject):
     Allows multi-cursor editing with fake cursors display and keyEvents filtering.
     """
 
+    line_max_length = 80
+
     events_trigger = [
         QtCore.QEvent.MouseButtonPress,
         QtCore.QEvent.MouseButtonRelease
@@ -244,6 +246,19 @@ class MultiCursorManager(QtCore.QObject):
         """ Make sure self is destroyed with QTextEdit """
         self.deleteLater()
 
+    def get_line_length_width(self):
+        """
+        Returns:
+            (int)
+
+        Get lines "max-length" width value.
+        """
+
+        test_string = '_'*self.line_max_length
+        font = self.txt_edit.font()
+        metrics = QtGui.QFontMetrics(font)
+        return metrics.boundingRect(test_string).width()
+
     def paint_event(self, event):
         """
         (overwrites self.overlay's paintEvent)
@@ -251,9 +266,14 @@ class MultiCursorManager(QtCore.QObject):
         Paint multi-cursors on self.overlay (over the actual cursor).
         """
 
-        if len(self.cursors) > 1:
-            painter = QtGui.QPainter(self.overlay)
+        painter = QtGui.QPainter(self.overlay)
 
+        # paint "max-length" vertical bar
+        painter.setPen(QtGui.QColor(207, 228, 255, 20))
+        x = self.get_line_length_width()
+        painter.drawLine(x, 0, x, 10000)
+
+        if len(self.cursors) > 1:
             painter.setBrush(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
             painter.setPen(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
 

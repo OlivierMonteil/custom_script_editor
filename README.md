@@ -41,7 +41,6 @@ TO DO :
     - Increment digits on multi-cursors (`Ctrl +digit`)
     - Palette editor commands, colors link
     - `re` module regex match (Regex Simulator)
-    - Show max line-length bar
     - Remove escape highlights on `r''` string (Python)
     - Improve Search/Replace
     - Linter?

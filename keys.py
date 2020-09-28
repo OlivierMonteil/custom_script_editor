@@ -105,8 +105,6 @@ class KeysHandler(QtCore.QObject):
                     multi_handler.add_cursor_from_key('up')
                     return True
 
-                return False
-
             cursor = self.get_cursor(obj)
 
             if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
@@ -198,7 +196,7 @@ class KeysHandler(QtCore.QObject):
 
             # any other cases
             text = event.text()
-            if text and re.match(CHARACTERS, text):
+            if text and text in CHARACTERS:
                 cursor.insertText(text)
                 return True
 

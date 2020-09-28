@@ -30,7 +30,7 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
 
         self.text_edit = text_edit
 
-        # Seems that setting CustomHighlighter's parent is not enough to avoid
+        # Seems that setting CustomHighlighter's parent is not enough to avoid  
         # the garbage collector, so we will add it to its parent attributes
         text_edit.custom_highlighter = self
 
@@ -707,7 +707,7 @@ class PythonRule(Rule):
                  ]
 
         # add decorators rule
-        rules += [('\@.+', 0, self.styles['decorators'])]
+        rules += [('\s*\@\w+', 0, self.styles['decorators'])]
 
         return [(QtCore.QRegExp(pat), index, fmt) for (pat, index, fmt) in rules]
 
