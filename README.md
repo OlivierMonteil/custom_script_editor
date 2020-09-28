@@ -33,3 +33,15 @@ Switching tab should add it back.
     - Palette editing (wip)
     - dir() navigation tool
     - regex tool (wip, QRegex only for now)
+
+TO DO :
+    - `Tab` key with multi-editing
+    - `Enter`/`Return` key with multi-editing
+    - `Home` key (go to the start of the indented line)
+    - Increment digits on multi-cursors (`Ctrl +digit`)
+    - Palette editor commands, colors link
+    - `re` module regex match (Regex Simulator)
+    - Show max line-length bar
+    - Remove escape highlights on `r''` string (Python)
+    - Improve Search/Replace
+    - Linter?

@@ -2,6 +2,9 @@
 Script for customizing Maya's script editor hotkeys.
 """
 
+import re
+import string
+
 from PySide2 import QtCore, QtGui
 
 from custom_script_editor.multi_cursors import MultiCursorManager, MultiCursor
@@ -15,6 +18,8 @@ MOVE_KEYS = [
     QtCore.Qt.Key_End,
     QtCore.Qt.Key_Home
 ]
+
+CHARACTERS = '[a-zA-Z0-9{}]'.format(''.join(['\\' +x for x in string.punctuation]))
 
 def extra_selections_updated(func):
     """
@@ -193,7 +198,7 @@ class KeysHandler(QtCore.QObject):
 
             # any other cases
             text = event.text()
-            if text:
+            if text and re.match(CHARACTERS, text):
                 cursor.insertText(text)
                 return True
 
