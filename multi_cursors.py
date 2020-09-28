@@ -48,6 +48,84 @@ class MultiCursorManager(QtCore.QObject):
 
         self.cursor_state = True    # used to switch cursor's colors
 
+    def add_cursor_from_key(self, direction):
+        """
+        Args:
+            direction (str) : 'up' or 'down'
+        """
+
+        if not direction in ('up', 'down'):
+            return True
+
+        new_cursor = self.txt_edit.textCursor()
+        if direction == 'up':
+            new_cursor.movePosition(new_cursor.Up, new_cursor.MoveAnchor)
+        elif direction == 'down':
+            new_cursor.movePosition(new_cursor.Down, new_cursor.MoveAnchor)
+
+        already_in = self.cursor_exists(new_cursor)
+
+        if not already_in:
+            self.add_cursor(new_cursor)
+
+        return True
+
+    def add_cursor(self, cursor):
+        """
+        Args:
+            cursor (QtGui.QTextCursor)
+
+        Add <cursor> to the current ones.
+        """
+
+        # add new_cursor to self.cursors
+        self.cursors.append(cursor)
+        # start blinking timer if not already active
+        if not self.timer.isActive():
+            self.timer.start()
+
+        self.update_extra_selections()
+        # set QTextEdit cursor on the last one
+        self.txt_edit.setTextCursor(self.cursors[-1])
+
+        return True
+
+    def remove_cursor(self, cursor):
+        """
+        Args:
+            cursor (QtGui.QTextCursor)
+
+        Remove <cursor> to the current ones.
+        """
+
+        self.cursors.remove(cursor)
+
+        # stop blinking timer if no multi cursors anymore
+        if len(self.cursors) == 1:
+            self.timer.stop()
+
+        # repaint the removed cursor's area
+        self.update_cursors([cursor])
+        # set QTextEdit cursor on the last one
+        self.txt_edit.setTextCursor(self.cursors[-1])
+
+        self.update_extra_selections()
+
+        return True
+
+    def clear_cursors(self):
+        """
+        Clear all multi-cursor.
+        """
+
+        # remove all multi-cursors on simple LMB click
+        self.timer.stop()
+        old_cursors = self.cursors
+        self.cursors = [self.txt_edit.textCursor()]
+        # repaint all removed cursors area
+        self.update_extra_selections()
+        self.update_cursors(old_cursors)
+
     def eventFilter(self, obj, event):
         # (no need to run set_customize_on_tab_change and customize_script_editor
         # if the Script Editor is already opened)
@@ -67,45 +145,19 @@ class MultiCursorManager(QtCore.QObject):
                     already_in = self.cursor_exists(new_cursor)
 
                     if not already_in:
-                        # add new_cursor to self.cursors
-                        self.cursors.append(new_cursor)
-                        # start blinking timer if not already active
-                        if not self.timer.isActive():
-                            self.timer.start()
-
-                        # cursor should be updated by passing-through the event
-                        self.update_extra_selections()
+                        return self.add_cursor(new_cursor)
 
                     else:
                         # remove from self.cursors if more than one
                         if len(self.cursors) > 1:
-                            self.cursors.remove(already_in)
-
-                            # stop blinking timer if no multi cursors anymore
-                            if len(self.cursors) == 1:
-                                self.timer.stop()
-
-                            # repaint the removed cursor's area
-                            self.update_cursors([already_in])
-                            # set QTextEdit cursor on the last one
-                            self.txt_edit.setTextCursor(self.cursors[-1])
-
-                            self.update_extra_selections()
+                            return self.remove_cursor(already_in)
 
                         # no need to go any further
                         return True
 
-                    # pass the event through
-                    return False
-
                 else:
                     # remove all multi-cursors on simple LMB click
-                    self.timer.stop()
-                    old_cursors = self.cursors
-                    self.cursors = [new_cursor]
-                    # repaint all removed cursors area
-                    self.update_extra_selections()
-                    self.update_cursors(old_cursors)
+                    self.clear_cursors()
 
         # pass the event through
         return False
@@ -576,13 +628,12 @@ class MultiCursor(QtGui.QTextCursor):
 
         return False
 
-    def get_selected_lines(self, cursor, start, end, set_selection=False, pos_in_block=False):
+    def get_selected_lines(self, cursor, start, end, pos_in_block=False):
         """
         Args:
             cursor (QtGui.QTextCursor)
             start (int)
             end (int)
-            set_selection (bool, optional)
             pos_in_block (bool, optional)
 
         Returns:
@@ -594,7 +645,6 @@ class MultiCursor(QtGui.QTextCursor):
             - if some text is selected, extend the returned text to the start of
               the first line and the end of the last line.
 
-            - if <set_selection> : set selection as the whole lines
             - if <pos_in_block> : return start/end positions in block
         """
 
@@ -610,9 +660,6 @@ class MultiCursor(QtGui.QTextCursor):
         end_in_block = cursor.positionInBlock()
         # move start position to the end of the line
         cursor.movePosition(cursor.EndOfLine, cursor.KeepAnchor)
-
-        if set_selection:
-            self.txt_edit.setTextCursor(cursor)
 
         if pos_in_block:
             return (
@@ -735,12 +782,9 @@ class MultiCursor(QtGui.QTextCursor):
                 cursor,
                 sel_start,
                 sel_end,
-                set_selection=True,
                 pos_in_block=True
             )
 
-            # get new textCursor (modified by get_selected_lines)
-            cursor = self.txt_edit.textCursor()
             # remove selected lines
             cursor.removeSelectedText()
 
@@ -844,7 +888,7 @@ class MultiCursor(QtGui.QTextCursor):
             if cursor.hasSelection():
                 # set the same selection
                 self.setPosition(cursor.selectionStart(), self.MoveAnchor)
-                self.movePosition(cursor.selectionEnd(), self.KeepAnchor)
+                self.setPosition(cursor.selectionEnd(), self.KeepAnchor)
             else:
                 # move cursor at the same position
                 self.setPosition(cursor.position(), self.MoveAnchor)
@@ -853,6 +897,57 @@ class MultiCursor(QtGui.QTextCursor):
             func(cursor, *args, **kwargs)
 
         self.endEditBlock()
+
+    def extend_selections(self, key, by_word=False):
+        """
+        Args:
+            key (QtCore.Qt.Key)
+            by_word (bool, optional)
+
+        Edit all cursors selection on move keys.
+        """
+
+        if key == QtCore.Qt.Key_Right:
+            if by_word:
+                self.multi_movePosition(self.NextWord, self.KeepAnchor)
+            else:
+                self.multi_movePosition(self.NextCharacter, self.KeepAnchor)
+
+        elif key == QtCore.Qt.Key_Left:
+            if by_word:
+                self.multi_movePosition(self.PreviousWord, self.KeepAnchor)
+            else:
+                self.multi_movePosition(self.PreviousCharacter, self.KeepAnchor)
+
+        elif key == QtCore.Qt.Key_Home:
+            self.multi_movePosition(self.StartOfBlock, self.KeepAnchor)
+
+        elif key == QtCore.Qt.Key_End:
+            self.multi_movePosition(self.EndOfBlock, self.KeepAnchor)
+
+        elif key == QtCore.Qt.Key_Down:
+            self.multi_movePosition(self.Down, self.KeepAnchor)
+
+        elif key == QtCore.Qt.Key_Up:
+            self.multi_movePosition(self.Up, self.KeepAnchor)
+
+    def multi_movePosition(self, operation, mode, n=1):
+        """
+        Args:
+            operation (QtGui.QTextCursor.MoveOperation)
+            mode (QtGui.QTextCursor.MoveMode)
+            n (int)
+
+        Specific "Qt re-implementation" for multi-movePosition, as already used
+        within self.exec_on_cursors (would run infinite loop).
+        """
+
+        for cursor in self.cursors:
+            cursor.movePosition(operation, mode, n)
+
+    #################################################################
+    #                    Qt re-implementations                      #
+    #################################################################
 
     def deleteChar(self):
         self.exec_on_cursors(QtGui.QTextCursor.deleteChar)

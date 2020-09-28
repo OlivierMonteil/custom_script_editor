@@ -21,6 +21,7 @@ Switching tab should add it back.
 
 - some useful hotkeys:
     - `Ctrl +Shift +D` : lines duplication
+    - `Ctrl +Alt +UP/DOWN` : add new multi-cursor up/down
     - `Ctrl +/` : toggle blocks comment
     - `Ctrl +UP/DOWN` : move lines
     - `Ctrl +V` : (multi-paste enabled)

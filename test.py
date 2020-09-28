@@ -61,6 +61,8 @@ class MultiEditText(QtWidgets.QWidget):
             mcursors_handle = MultiCursorManager(txt_edit)
             mcursors_handle.install(txt_edit)
 
+        self.resize(500, 300)
+
 
 def child_class_needed(widget, target_class):
     """

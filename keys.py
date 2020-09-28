@@ -7,6 +7,15 @@ from PySide2 import QtCore, QtGui
 from custom_script_editor.multi_cursors import MultiCursorManager, MultiCursor
 
 
+MOVE_KEYS = [
+    QtCore.Qt.Key_Down,
+    QtCore.Qt.Key_Up,
+    QtCore.Qt.Key_Left,
+    QtCore.Qt.Key_Right,
+    QtCore.Qt.Key_End,
+    QtCore.Qt.Key_Home
+]
+
 def extra_selections_updated(func):
     """
     Decorator that asks MultiCursorManager instance (if any) to update extra
@@ -78,13 +87,32 @@ class KeysHandler(QtCore.QObject):
             # handle "embracing" character if some text is selected
 
             key = event.key()
+
+            if event.modifiers() == (QtCore.Qt.AltModifier | QtCore.Qt.ControlModifier):
+                # add new multi-cursor under current one
+                if key == QtCore.Qt.Key_Down:
+                    multi_handler = self.get_multi_handler()
+                    multi_handler.add_cursor_from_key('down')
+                    return True
+                # add new multi-cursor above current one
+                if key == QtCore.Qt.Key_Up:
+                    multi_handler = self.get_multi_handler()
+                    multi_handler.add_cursor_from_key('up')
+                    return True
+
+                return False
+
             cursor = self.get_cursor(obj)
-            multi_cursors = cursor.cursors
 
             if event.modifiers() == (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier):
                 # handle lines duplication on Ctrl+Shift+D
                 if key == QtCore.Qt.Key_D:
                     cursor.duplicate_lines()
+                    return True
+
+                # extend selections on previous/next word on Ctrl +Shift +Left/Right
+                if key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
+                    cursor.extend_selections(key, by_word=True)
                     return True
 
                 return False
@@ -112,6 +140,20 @@ class KeysHandler(QtCore.QObject):
                     cursor.insertText(text)
                     return True
 
+                return False
+
+
+            if event.modifiers() == QtCore.Qt.ShiftModifier:
+                # extend selections on Shift +cursor move
+                if key in MOVE_KEYS:
+                    cursor.extend_selections(key)
+                    return True
+
+
+            if key in MOVE_KEYS:
+                # clear multi-cursors on no-modifiers move
+                multi_handler = self.get_multi_handler()
+                multi_handler.clear_cursors()
                 return False
 
 
