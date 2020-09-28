@@ -1,8 +1,9 @@
+#-*- coding: utf-8 -*-
+
 """
 Script for customizing Maya's script editor hotkeys.
 """
 
-import re
 import string
 
 from PySide2 import QtCore, QtGui
@@ -19,7 +20,14 @@ MOVE_KEYS = [
     QtCore.Qt.Key_Home
 ]
 
-CHARACTERS = '[a-zA-Z0-9{}]'.format(''.join(['\\' +x for x in string.punctuation]))
+CHARACTERS = string.printable.split(' ')[0] +' '
+# special chars, with accents, etc
+SPECIAL_CHARS = u'\x83\x9a\x9c\x9e\xaa\xb5\xba\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6'
+SPECIAL_CHARS += u'\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5'
+SPECIAL_CHARS += u'\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x8a\x8c\x8e\x9f\xc0\xc1'
+SPECIAL_CHARS += u'\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0'
+SPECIAL_CHARS += u'\xd1\xd2\xd3\xd4\xd5\xd6\xd8\xd9\xda\xdb\xdc\xdd\xde'
+
 
 def extra_selections_updated(func):
     """
@@ -197,6 +205,10 @@ class KeysHandler(QtCore.QObject):
             # any other cases
             text = event.text()
             if text and text in CHARACTERS:
+                cursor.insertText(text)
+                return True
+
+            if text and text in SPECIAL_CHARS:
                 cursor.insertText(text)
                 return True
 
