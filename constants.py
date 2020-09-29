@@ -2,12 +2,57 @@
 Scripts constant values.
 """
 
-import os
+import string
+
+from PySide2 import QtCore
+
+            #######################################################
+            #                        General                      #
+            #######################################################
 
 VALID_TABS_REGEX = ['MEL', 'Python', '[\w\-_]+(.py)$']
 CUSTOM_MENU_NAME = 'CustomMenu'
 SNIPPETS_BOX_NAME = 'SnippetBox'
 WORD_WRAP_BOX_NAME = 'WordWrapBox'
+
+INF_HEIGHT = 5000
+INF_WIDTH = 10000
+
+LEFT_PADDING = 20
+
+            #######################################################
+            #                         Keys                        #
+            #######################################################
+
+MOVE_KEYS = [
+    QtCore.Qt.Key_Down,
+    QtCore.Qt.Key_Up,
+    QtCore.Qt.Key_Left,
+    QtCore.Qt.Key_Right,
+    QtCore.Qt.Key_End,
+    QtCore.Qt.Key_Home
+]
+
+CHARACTERS = string.printable.split(' ')[0] +' '
+# special chars, with accents, etc
+SPECIAL_CHARS = u'\x83\x9a\x9c\x9e\xaa\xb5\xba\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6'
+SPECIAL_CHARS += u'\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5'
+SPECIAL_CHARS += u'\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x8a\x8c\x8e\x9f\xc0\xc1'
+SPECIAL_CHARS += u'\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0'
+SPECIAL_CHARS += u'\xd1\xd2\xd3\xd4\xd5\xd6\xd8\xd9\xda\xdb\xdc\xdd\xde'
+
+            #######################################################
+            #                   Blocks Collapse                   #
+            #######################################################
+
+COLLAPSIBLE_PATTERNS = [
+    'def ',
+    'class '
+]
+
+            #######################################################
+            #                   Syntax Highlight                  #
+            #######################################################
 
 PYTHON_NUMBERS = [
     'None',

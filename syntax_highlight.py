@@ -30,7 +30,7 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
 
         self.text_edit = text_edit
 
-        # Seems that setting CustomHighlighter's parent is not enough to avoid  
+        # Seems that setting CustomHighlighter's parent is not enough to avoid
         # the garbage collector, so we will add it to its parent attributes
         text_edit.custom_highlighter = self
 
@@ -79,9 +79,10 @@ class LogHighlighter(CustomHighlighter):
         if text_edit is None:
             text_edit = self.parent()
 
-        self.palette = palette.LogPalette(text_edit)
         self._python_palette = palette.PythonPalette(text_edit)
         self._mel_palette = palette.MelPalette(text_edit)
+        # last for no-padding (see Palette)
+        self.palette = palette.LogPalette(text_edit)
 
         self.rule = LogRule(
             self,
@@ -671,17 +672,19 @@ class PythonRule(Rule):
         rules += [('\\b%s\\b' % x, 0, self.styles['special']) for x in kk.PYTHON_BUILTINS]
 
         rules += [
+
                      # inherited classes rule
                      ('(\\bclass\\b\s*_*\w+_*\s*\()(.+)(\))', 2, self.styles['class_arg']),
-                     # declared classes rule
-                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name']),
+
                      # intermediates rule
                      ('(\.)(\w+)', 2, self.styles['interm']),
+                      # called functions rule
+                       ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
+
+                     # declared classes rule
+                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name']),
                      # declared functions rule
-                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name']),
-                     # called functions rule
-                     ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called'])
-                     # add python "builtins" words rules
+                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name'])
                  ]
 
         # add python keywords rules

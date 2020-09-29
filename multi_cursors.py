@@ -7,6 +7,8 @@ import re
 
 from PySide2 import QtWidgets, QtCore, QtGui
 
+from custom_script_editor import constants as kk
+
 
 OPEN_CLOSE_CHARS = [
     ('(', ')'),
@@ -123,9 +125,11 @@ class MultiCursorManager(QtCore.QObject):
         # remove all multi-cursors on simple LMB click
         self.timer.stop()
         old_cursors = self.cursors
-        self.cursors = [self.txt_edit.textCursor()]
+        self.cursors = [self.cursors[-1]]
         # repaint all removed cursors area
         self.update_extra_selections()
+
+        self.txt_edit.setTextCursor(self.cursors[-1])
         self.update_cursors(old_cursors)
 
     def eventFilter(self, obj, event):
@@ -158,7 +162,7 @@ class MultiCursorManager(QtCore.QObject):
                         return True
 
                 else:
-                    # remove all multi-cursors on simple LMB click
+                    self.add_cursor(new_cursor)
                     self.clear_cursors()
 
         # pass the event through
@@ -235,7 +239,7 @@ class MultiCursorManager(QtCore.QObject):
         overlay.show()
 
         # set overlay's size and position to cover entirely the QTextEdit's viewport
-        overlay.resize(5000, 6000)
+        overlay.resize(kk.INF_WIDTH, kk.INF_HEIGHT)
         overlay.move(viewport.pos())
 
         # set overlay's paintEvent
@@ -259,6 +263,9 @@ class MultiCursorManager(QtCore.QObject):
         metrics = QtGui.QFontMetrics(font)
         return metrics.boundingRect(test_string).width()
 
+    def cursors_color(self):
+        return QtGui.QColor(*self.cursor_colors[self.cursor_state])
+
     def paint_event(self, event):
         """
         (overwrites self.overlay's paintEvent)
@@ -271,19 +278,33 @@ class MultiCursorManager(QtCore.QObject):
         # paint "max-length" vertical bar
         painter.setPen(QtGui.QColor(207, 228, 255, 20))
         x = self.get_line_length_width()
-        painter.drawLine(x, 0, x, 10000)
+        painter.drawLine(x, 0, x, kk.INF_HEIGHT)
+
+        painter.setPen(QtCore.Qt.NoPen)
 
         if len(self.cursors) > 1:
-            painter.setBrush(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
-            painter.setPen(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
-
             for cursor in self.cursors:
+                painter.setBrush(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
                 try:
                     rect = self.txt_edit.cursorRect(cursor)
-                    painter.drawRect(rect)
+                    painter.drawRect(
+                        rect.x() +kk.LEFT_PADDING,
+                        rect.y(),
+                        rect.width(),
+                        rect.height()
+                    )
 
                 except:
-                    pass    # safety
+                    pass
+
+        rect = self.txt_edit.cursorRect(self.cursors[-1])
+        painter.setBrush(QtGui.QColor(207, 228, 255, 10))
+        painter.drawRect(
+            0,
+            rect.y(),
+            kk.INF_WIDTH,
+            rect.height()
+        )
 
     def update_cursors(self, cursors=None):
         """
@@ -300,9 +321,9 @@ class MultiCursorManager(QtCore.QObject):
             rect = self.txt_edit.cursorRect(cursor)
 
             rect = QtCore.QRect(
-                rect.x() -offset,
+                0,
                 rect.y() -offset,
-                rect.width() +offset*2,
+                kk.INF_WIDTH,
                 rect.height() +offset*2
             )
 
@@ -918,6 +939,32 @@ class MultiCursor(QtGui.QTextCursor):
 
         self.endEditBlock()
 
+    def get_move_operation_from_key(self, key, by_word=False):
+        if key == QtCore.Qt.Key_Right:
+            if by_word:
+                return QtGui.QTextCursor.NextWord
+            else:
+                return QtGui.QTextCursor.NextCharacter
+
+        elif key == QtCore.Qt.Key_Left:
+            if by_word:
+                return QtGui.QTextCursor.PreviousWord
+            else:
+                return QtGui.QTextCursor.PreviousCharacter
+
+        elif key == QtCore.Qt.Key_Home:
+            return QtGui.QTextCursor.StartOfBlock
+
+        elif key == QtCore.Qt.Key_End:
+            return QtGui.QTextCursor.EndOfBlock
+
+        elif key == QtCore.Qt.Key_Down:
+            return QtGui.QTextCursor.Down
+
+        elif key == QtCore.Qt.Key_Up:
+            return QtGui.QTextCursor.Up
+
+
     def extend_selections(self, key, by_word=False):
         """
         Args:
@@ -927,29 +974,8 @@ class MultiCursor(QtGui.QTextCursor):
         Edit all cursors selection on move keys.
         """
 
-        if key == QtCore.Qt.Key_Right:
-            if by_word:
-                self.multi_movePosition(self.NextWord, self.KeepAnchor)
-            else:
-                self.multi_movePosition(self.NextCharacter, self.KeepAnchor)
-
-        elif key == QtCore.Qt.Key_Left:
-            if by_word:
-                self.multi_movePosition(self.PreviousWord, self.KeepAnchor)
-            else:
-                self.multi_movePosition(self.PreviousCharacter, self.KeepAnchor)
-
-        elif key == QtCore.Qt.Key_Home:
-            self.multi_movePosition(self.StartOfBlock, self.KeepAnchor)
-
-        elif key == QtCore.Qt.Key_End:
-            self.multi_movePosition(self.EndOfBlock, self.KeepAnchor)
-
-        elif key == QtCore.Qt.Key_Down:
-            self.multi_movePosition(self.Down, self.KeepAnchor)
-
-        elif key == QtCore.Qt.Key_Up:
-            self.multi_movePosition(self.Up, self.KeepAnchor)
+        operation = self.get_move_operation_from_key(key, by_word=by_word)
+        self.multi_movePosition(operation, self.KeepAnchor)
 
     def multi_movePosition(self, operation, mode, n=1):
         """
@@ -963,7 +989,36 @@ class MultiCursor(QtGui.QTextCursor):
         """
 
         for cursor in self.cursors:
-            cursor.movePosition(operation, mode, n)
+            # specific case on start-of-line : first go to the start of the line
+            # indentation, then if pressed again, go to the start of the line.
+            if operation == QtGui.QTextCursor.StartOfBlock:
+                pos = cursor.positionInBlock()
+                line = cursor.block().text()
+                if not pos:
+                    continue
+
+                whitespace_match = re.match('\s+', line[:pos])
+
+                # all previous characters are whitespaces, go the start of the line
+                if whitespace_match and len(whitespace_match.group(0)) == pos:
+                    cursor.movePosition(QtGui.QTextCursor.StartOfBlock, mode, n)
+
+                else:
+                    # line has indentation, go to the start of the line, then to
+                    # the start of the first word in line
+                    if whitespace_match:
+                        cursor.movePosition(QtGui.QTextCursor.StartOfBlock, mode, n)
+                        cursor.movePosition(QtGui.QTextCursor.NextWord, mode, n)
+                    else:
+                        # line has no indentation, go to the start of the line
+                        cursor.movePosition(QtGui.QTextCursor.StartOfBlock, mode, n)
+
+            else:
+                cursor.movePosition(operation, mode, n)
+
+            # triggers the cursor's new area to be repainted, and makes sure the
+            # last cursor of the loop is set on the QTextEdit
+            self.txt_edit.setTextCursor(cursor)
 
     #################################################################
     #                    Qt re-implementations                      #

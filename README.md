@@ -18,6 +18,7 @@ Switching tab should add it back.
 
 - multi-line editing (add cursors on `Ctrl +LMB`, work in progress).
 - snippets (auto-completion) manager (for now, not compatible with the multi-line editing).
+- text blocks collapse/expand (work in progress)
 
 - some useful hotkeys:
     - `Ctrl +Shift +D` : lines duplication

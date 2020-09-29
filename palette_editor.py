@@ -252,7 +252,7 @@ class PaletteEditor(QtWidgets.QMainWindow):
         self.sample_text = QtWidgets.QTextEdit(self, readOnly=True)
         self.sample_text.setObjectName(WINDOW_OBJECT_NAME +'_sampleTextEdit')
 
-        self.sample_text.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
+        #self.sample_text.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.sample_text.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
         # apply highlight
@@ -283,6 +283,7 @@ class PaletteEditor(QtWidgets.QMainWindow):
                 pass
 
         self.sample_text.setText(text)
+
 
     def on_color_changed(self):
         """

@@ -22,6 +22,7 @@ from custom_script_editor import palette
 from custom_script_editor import palette_editor
 from custom_script_editor import constants as kk
 from custom_script_editor.multi_cursors import MultiCursorManager
+from custom_script_editor.blocks_collapse import CollapseWidget, set_collapse_widget
 
 
 class ScriptEditorDetector(QtCore.QObject):
@@ -324,6 +325,9 @@ def customize_script_editor(*args):
                 if child_class_needed(txt_edit, MultiCursorManager):
                     mcursors_handle = MultiCursorManager(txt_edit)
                     mcursors_handle.install(txt_edit)
+
+                if child_class_needed(txt_edit, CollapseWidget):
+                    set_collapse_widget(txt_edit)
 
             except Exception as e:
                 print '# [Custom Script Editor] Error : {} #'.format(e)

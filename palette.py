@@ -7,27 +7,32 @@ except ImportError:
     from PySide import QtGui
     from PySide import QtGui as QtWidgets
 
+from custom_script_editor import constants as kk
+
 
 STYLE_PATTERN = """
 QTextEdit#%(object_name)s {
     color: rgb%(color)s;
     background : rgb%(background)s;
+    selection-color: rgb%(highlight_text)s;
+    selection-background-color : rgba%(highlight)s;
+    %(paddingLine)s
 }
 """
 
 PALETTES_ROOT = os.path.join(os.path.dirname(__file__), 'palettes')
 
 
-
 class Palette(object):
 
     specific_formats = {}
 
-    def __init__(self, widget):
+    def __init__(self, widget, padding=True):
 
         self.root_type = None
         self.widget = widget
         self.palette = {}
+        self.padding = padding
 
     def apply_theme(self, widget, theme):
         theme = self.root_type +'/' +theme if self.root_type else theme
@@ -35,10 +40,19 @@ class Palette(object):
         self.set_stylesheet()
 
     def set_stylesheet(self):
+        if self.padding:
+            paddingLine = 'padding-left : {}px;'.format(kk.LEFT_PADDING)
+        else:
+            paddingLine = ''
+
         style_body = STYLE_PATTERN % {
             'object_name': self.widget.objectName(),
             'color': self.get_color('normal'),
-            'background': self.get_color('background')
+            'background': self.get_color('background'),
+            'highlight': self.get_color('highlight'),
+            'highlight_text': self.get_color('highlight_text'),
+            'background': self.get_color('background'),
+            'paddingLine': paddingLine
         }
 
         self.widget.setStyleSheet(style_body)
@@ -64,7 +78,7 @@ class Palette(object):
     def set_color(self, key, rgb):
         self.palette[key] = tuple(rgb)
 
-        if key in ('normal', 'background'):
+        if key in ('normal', 'background', 'highlight', 'highlight_text'):
             self.set_stylesheet()
 
 
@@ -106,10 +120,9 @@ class LogPalette(Palette):
     }
 
     def __init__(self, widget):
-        Palette.__init__(self, widget)
+        Palette.__init__(self, widget, padding=False)
         self.root_type = 'log'
         self.apply_theme(widget, 'default')
-
 
 
 def char_format(rgb, style=''):

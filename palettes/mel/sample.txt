@@ -24,3 +24,5 @@ file -f -new;
 
 int $isToto = detectToto("Alfred");
 print ($isToto);
+
+// Highlighted line //

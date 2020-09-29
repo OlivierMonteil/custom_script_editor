@@ -4,29 +4,11 @@
 Script for customizing Maya's script editor hotkeys.
 """
 
-import string
-
 from PySide2 import QtCore, QtGui
 
 from custom_script_editor.multi_cursors import MultiCursorManager, MultiCursor
+from custom_script_editor import constants as kk
 
-
-MOVE_KEYS = [
-    QtCore.Qt.Key_Down,
-    QtCore.Qt.Key_Up,
-    QtCore.Qt.Key_Left,
-    QtCore.Qt.Key_Right,
-    QtCore.Qt.Key_End,
-    QtCore.Qt.Key_Home
-]
-
-CHARACTERS = string.printable.split(' ')[0] +' '
-# special chars, with accents, etc
-SPECIAL_CHARS = u'\x83\x9a\x9c\x9e\xaa\xb5\xba\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6'
-SPECIAL_CHARS += u'\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5'
-SPECIAL_CHARS += u'\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff\x8a\x8c\x8e\x9f\xc0\xc1'
-SPECIAL_CHARS += u'\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0'
-SPECIAL_CHARS += u'\xd1\xd2\xd3\xd4\xd5\xd6\xd8\xd9\xda\xdb\xdc\xdd\xde'
 
 
 def extra_selections_updated(func):
@@ -145,6 +127,11 @@ class KeysHandler(QtCore.QObject):
                 if key == QtCore.Qt.Key_Up:
                     return cursor.move_lines('up')
 
+                if key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
+                    operation = cursor.get_move_operation_from_key(key, by_word=True)
+                    cursor.multi_movePosition(operation, cursor.MoveAnchor)
+                    return True
+
                 # paste and Ctrl +V
                 if key == QtCore.Qt.Key_V:
                     text = QtGui.QClipboard().text()
@@ -156,17 +143,15 @@ class KeysHandler(QtCore.QObject):
 
             if event.modifiers() == QtCore.Qt.ShiftModifier:
                 # extend selections on Shift +cursor move
-                if key in MOVE_KEYS:
+                if key in kk.MOVE_KEYS:
                     cursor.extend_selections(key)
                     return True
 
-
-            if key in MOVE_KEYS:
+            if key in kk.MOVE_KEYS:
                 # clear multi-cursors on no-modifiers move
-                multi_handler = self.get_multi_handler()
-                multi_handler.clear_cursors()
-                return False
-
+                operation = cursor.get_move_operation_from_key(key)
+                cursor.multi_movePosition(operation, cursor.MoveAnchor)
+                return True
 
             # handle embracing characters
             if event.text() == '`':
@@ -196,6 +181,7 @@ class KeysHandler(QtCore.QObject):
             # delete
             if event.key() == QtCore.Qt.Key_Delete:
                 cursor.deleteChar()
+                block = cursor.block()
                 return True
 
             # backspace
@@ -204,11 +190,11 @@ class KeysHandler(QtCore.QObject):
 
             # any other cases
             text = event.text()
-            if text and text in CHARACTERS:
+            if text and text in kk.CHARACTERS:
                 cursor.insertText(text)
                 return True
 
-            if text and text in SPECIAL_CHARS:
+            if text and text in kk.SPECIAL_CHARS:
                 cursor.insertText(text)
                 return True
 
