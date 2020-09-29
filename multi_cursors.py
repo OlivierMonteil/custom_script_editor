@@ -288,7 +288,7 @@ class MultiCursorManager(QtCore.QObject):
                 try:
                     rect = self.txt_edit.cursorRect(cursor)
                     painter.drawRect(
-                        rect.x() +kk.LEFT_PADDING,
+                        rect.x(),
                         rect.y(),
                         rect.width(),
                         rect.height()
