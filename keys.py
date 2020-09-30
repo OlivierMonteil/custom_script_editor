@@ -132,10 +132,20 @@ class KeysHandler(QtCore.QObject):
                     cursor.multi_movePosition(operation, cursor.MoveAnchor)
                     return True
 
-                # paste and Ctrl +V
+                # paste on Ctrl +V
                 if key == QtCore.Qt.Key_V:
                     text = QtGui.QClipboard().text()
                     cursor.insertText(text)
+                    return True
+
+                # clear multi-cursors on Ctrl +A and select all
+                if key == QtCore.Qt.Key_A:
+                    multi_manager = self.get_multi_handler()
+                    multi_manager.clear_cursors()
+                    cursor = multi_manager.cursors[-1]
+                    cursor.movePosition(cursor.Start, cursor.MoveAnchor)
+                    cursor.movePosition(cursor.End, cursor.KeepAnchor)
+                    self.parent().setTextCursor(cursor)
                     return True
 
                 return False
@@ -148,7 +158,6 @@ class KeysHandler(QtCore.QObject):
                     return True
 
             if key in kk.MOVE_KEYS:
-                # clear multi-cursors on no-modifiers move
                 operation = cursor.get_move_operation_from_key(key)
                 cursor.multi_movePosition(operation, cursor.MoveAnchor)
                 return True

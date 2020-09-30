@@ -37,10 +37,10 @@ class CollapseWidget(QtWidgets.QWidget):
         self.txt_edit.zoomOut = self.zoom_out_with_signal
         self.txt_edit.textChanged.connect(self.update_all)
         # update position on vertical scrollbar changes
-        self.txt_edit.verticalScrollBar().valueChanged.connect(self.update_all)
-        self.txt_edit.verticalScrollBar().rangeChanged.connect(self.update_all)
-        self.txt_edit.verticalScrollBar().sliderMoved.connect(self.update_all)
-
+        self.txt_edit.verticalScrollBar().valueChanged.connect(self.update_position)
+        self.txt_edit.verticalScrollBar().rangeChanged.connect(self.update_position)
+        self.txt_edit.verticalScrollBar().sliderMoved.connect(self.update_position)
+        # update on QTextEdit zoom in/out
         self.txt_edit_zoomed.connect(self.on_zoom)
 
     def zoom_in_with_signal(self, value):
@@ -53,6 +53,7 @@ class CollapseWidget(QtWidgets.QWidget):
 
     def on_zoom(self):
         """
+        Hide buttons if text is too small, else update their positions.
         """
 
         size = self.txt_edit.font().pointSize()
