@@ -38,8 +38,8 @@ def print_error(func):
         try:
             return func(*args, **kwargs)
 
-        except:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
+        except Exception as e:
+            print kk.MESSAGE.format('Error : {}'.format(e))
             print traceback.format_exc()
 
     return wrap

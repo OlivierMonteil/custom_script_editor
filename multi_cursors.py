@@ -29,7 +29,6 @@ class MultiCursorManager(QtCore.QObject):
     line_max_length = 80
 
     events_trigger = [
-        QtCore.QEvent.MouseButtonPress,
         QtCore.QEvent.MouseButtonRelease
     ]
     cursor_colors = [
@@ -37,9 +36,11 @@ class MultiCursorManager(QtCore.QObject):
         (117, 229, 92)
     ]
 
-    def __init__(self, parent):
+    def __init__(self, parent, apply_padding=False):
         super(MultiCursorManager, self).__init__(parent)
 
+        self.apply_padding = apply_padding
+        self.multi_triggered = False
         self.txt_edit = None
         self.cursors = []
         self.multi_cursor = []
@@ -133,8 +134,9 @@ class MultiCursorManager(QtCore.QObject):
         self.update_cursors(old_cursors)
 
     def eventFilter(self, obj, event):
-        # (no need to run set_customize_on_tab_change and customize_script_editor
-        # if the Script Editor is already opened)
+        """
+        Handle multi cursors on LMB events on QTextEdit.
+        """
 
         if not event.type() in self.events_trigger:
             return False
@@ -287,8 +289,12 @@ class MultiCursorManager(QtCore.QObject):
                 painter.setBrush(QtGui.QColor(*self.cursor_colors[self.cursor_state]))
                 try:
                     rect = self.txt_edit.cursorRect(cursor)
+                    # self.padding must be False on Maya Script Editor but may
+                    # have to be applied if used on another QTextEdit
+                    x_pos = rect.x() +kk.LEFT_PADDING if self.apply_padding else rect.x()
+
                     painter.drawRect(
-                        rect.x(),
+                        x_pos,
                         rect.y(),
                         rect.width(),
                         rect.height()

@@ -51,14 +51,6 @@
         "numbers": [
             "numbers",
             null
-        ],
-        "highlight_text": [
-            "Highlighted text",
-            null
-        ],
-        "highlight": [
-            "Highlight background",
-            null
         ]
     },
     "font_specs": {

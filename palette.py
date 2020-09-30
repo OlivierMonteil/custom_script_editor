@@ -2,7 +2,7 @@ import os
 import json
 
 try:
-    from PySide2 import QtWidgets, QtGui
+    from PySide2 import QtWidgets, QtGui, QtCore
 except ImportError:
     from PySide import QtGui
     from PySide import QtGui as QtWidgets
@@ -14,8 +14,6 @@ STYLE_PATTERN = """
 QTextEdit#%(object_name)s {
     color: rgb%(color)s;
     background : rgb%(background)s;
-    selection-color: rgb%(highlight_text)s;
-    selection-background-color : rgba%(highlight)s;
     %(paddingLine)s
 }
 """
@@ -49,13 +47,24 @@ class Palette(object):
             'object_name': self.widget.objectName(),
             'color': self.get_color('normal'),
             'background': self.get_color('background'),
-            'highlight': self.get_color('highlight'),
-            'highlight_text': self.get_color('highlight_text'),
-            'background': self.get_color('background'),
             'paddingLine': paddingLine
         }
 
         self.widget.setStyleSheet(style_body)
+
+        # get QtGui.QPalette from self.widget (QTextEdit)
+        qpalette = self.widget.palette()
+        # set no brush on highlighted text (will keep sinthax highlight)
+        qpalette.setBrush(
+            QtGui.QPalette.HighlightedText,
+            QtGui.QBrush(QtCore.Qt.NoBrush)
+        )
+        qpalette.setBrush(
+            QtGui.QPalette.Highlight,
+            QtGui.QColor(201, 214, 255, 50)
+        )
+        # apply new palette on the QTextEdit
+        self.widget.setPalette(qpalette)
 
     def char_formatted(self):
         result_dict = {}
@@ -108,6 +117,7 @@ class MelPalette(Palette):
     def __init__(self, widget):
         Palette.__init__(self, widget)
         self.root_type = 'mel'
+
         self.apply_theme(widget, 'default')
 
 

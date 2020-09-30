@@ -206,7 +206,7 @@ def set_logs_word_wrap(enabled):
 def add_custom_menus():
     """ Add custom menus to the Script Editor's tabs hotbox menu. """
 
-    se_popup_menus = mel.eval("$toto = $gCommandPopupMenus;")
+    se_popup_menus = mel.eval("$script_editor_cmd_popup = $gCommandPopupMenus;")
 
     for menu in se_popup_menus:
         if not mc.menu(menu, q=True, exists=True):
@@ -320,7 +320,6 @@ def customize_script_editor(*args):
                     snippets_handle = snippets.SnippetsHandler(txt_edit, form_lay)
                     txt_edit.installEventFilter(snippets_handle)
 
-                script_editor = get_script_editor()
                 # install MultiCursorManager filterEvent on QTextEdit if not already installed
                 if child_class_needed(txt_edit, MultiCursorManager):
                     mcursors_handle = MultiCursorManager(txt_edit)
@@ -330,7 +329,7 @@ def customize_script_editor(*args):
                     set_collapse_widget(txt_edit)
 
             except Exception as e:
-                print '# [Custom Script Editor] Error : {} #'.format(e)
+                print kk.MESSAGE.format('Error : {}'.format(e))
                 traceback.print_exc()
 
 
@@ -362,4 +361,4 @@ def run():
         mc.evalDeferred(customize_script_editor, lp=True)
         mc.evalDeferred(set_customize_on_tab_change, lp=True)
 
-    print ('# [Custom Script Editor] Success: activated. #')
+    print (kk.MESSAGE.format('Success: activated.'))

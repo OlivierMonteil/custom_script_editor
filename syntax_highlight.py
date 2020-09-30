@@ -666,59 +666,47 @@ class PythonRule(Rule):
         # digits rule
         rules = [('\\b\d+\\b', 0, self.styles['numbers'])]
 
-        # add python "self" rule
+        # python "self" rule
         rules += [('\\b(self)\\b', 0, self.styles['self'])]
-        # add python "builtins" words rules
+        # python "builtins" words rules
         rules += [('\\b%s\\b' % x, 0, self.styles['special']) for x in kk.PYTHON_BUILTINS]
 
-        rules += [
+        # inherited classes rule
+        rules += [('(\\bclass\\b\s*_*\w+_*\s*\()(.+)(\))', 2, self.styles['class_arg'])]
+        # intermediate objects rule
+        rules += [('(\.)(\w+)', 2, self.styles['interm'])]
+        # called functions rule
+        rules += [('(\\b_*\w+_*\s*)(\()', 1, self.styles['called'])]
+        # declared classes rule
+        rules += [('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name'])]
+        # declared functions rule
+        rules += [('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name'])]
 
-                     # inherited classes rule
-                     ('(\\bclass\\b\s*_*\w+_*\s*\()(.+)(\))', 2, self.styles['class_arg']),
-
-                     # intermediates rule
-                     ('(\.)(\w+)', 2, self.styles['interm']),
-                      # called functions rule
-                       ('(\\b_*\w+_*\s*)(\()', 1, self.styles['called']),
-
-                     # declared classes rule
-                     ('(\\bclass\\b\s*)(_*\w+_*)', 2, self.styles['class_name']),
-                     # declared functions rule
-                     ('(\\bdef\\b\s*)(_*\w+_*)', 2, self.styles['def_name'])
-                 ]
-
-        # add python keywords rules
+        # python keywords rules
         rules += [('\\b(%s)\\b' % w, 0, self.styles['keyword']) for w in kk.PYTHON_KEYWORDS]
-
-        # add operators rules
+        # operators rules
         rules += [('%s' % o, 0, self.styles['operator']) for o in kk.OPERATORS]
-
-        rules += [
-                     # kwargs first part rule
-                     ('(,\s*|\()(\w+)(\s*=\s*)', 2, self.styles['numbers'])
-                 ]
+        # kwarg= rule
+        rules += [('(,\s*|\()(\w+)(\s*=\s*)', 2, self.styles['numbers'])]
 
         # add numbers rule (called after intermediates sur float would not
         # be considered as intermediates)
         rules += [('\\b(%s)\\b' % n, 0, self.styles['numbers']) for n in kk.PYTHON_NUMBERS]
+        # set '.' on float back to numbers style
+        rules += [('\d+\.*\d+', 0, self.styles['numbers'])]
+        # set ',' back to normal
+        rules += [(',', 0, self.styles['normal'])]
 
-        rules += [
-                    # set '.' on float back to numbers style
-                    ('\d+\.*\d+', 0, self.styles['numbers']),
-                    # set ',' back to normal
-                    (',', 0, self.styles['normal']),
-                 ]
-
-        # add decorators rule
+        # decorators rule
         rules += [('\s*\@\w+', 0, self.styles['decorators'])]
 
         return [(QtCore.QRegExp(pat), index, fmt) for (pat, index, fmt) in rules]
 
 
 
-                        ###########################
-                        #   detecting MEL lines   #
-                        ###########################
+                    ###########################################
+                    #   detecting MEL lines in console logs   #
+                    ###########################################
 
 def is_mel_line(line):
     # lines that ends with ";"
@@ -762,9 +750,9 @@ def is_mel_line(line):
     return False
 
 
-                      ##############################
-                      #   detecting Python lines   #
-                      ##############################
+                  ##############################################
+                  #   detecting Python lines in console logs   #
+                  ##############################################
 
 
 def is_python_line(line):

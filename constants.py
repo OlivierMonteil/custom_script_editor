@@ -18,6 +18,8 @@ WORD_WRAP_BOX_NAME = 'WordWrapBox'
 INF_HEIGHT = 5000
 INF_WIDTH = 10000
 
+MESSAGE = '# [Custom Script Editor]   {} #'
+
 LEFT_PADDING = 20
 
             #######################################################

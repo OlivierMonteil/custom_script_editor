@@ -71,7 +71,7 @@ class MultiEditWindow(QtWidgets.QWidget):
             self.txt_edit.installEventFilter(key_handle)
 
         if child_class_needed(self.txt_edit, MultiCursorManager):
-            mcursors_handle = MultiCursorManager(self.txt_edit)
+            mcursors_handle = MultiCursorManager(self.txt_edit, apply_padding=True)
             mcursors_handle.install(self.txt_edit)
 
         if child_class_needed(self.txt_edit, CollapseWidget):

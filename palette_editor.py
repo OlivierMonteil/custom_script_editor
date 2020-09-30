@@ -84,6 +84,8 @@ class PaletteEditor(QtWidgets.QMainWindow):
         self.display_palette('default')
 
         save_button.clicked.connect(self.save_preset)
+        apply_button.clicked.connect(self.apply_preset)
+        set_default_button.clicked.connect(self.set_as_default)
 
     def set_toolbar(self):
         # create bar and menus
@@ -152,12 +154,18 @@ class PaletteEditor(QtWidgets.QMainWindow):
 
                 self.display_palette(None, force_palette=(theme, content))
 
+    def set_as_default(self):
+        print (kk.MESSAGE.format('Warning: not implemented yet.'))
+
+    def apply_preset(self):
+        print (kk.MESSAGE.format('Warning: not implemented yet.'))
+
     def save_preset(self):
         txt_type = self.rules_box.currentText()
 
         dialog = PresetsDialog(
             os.path.join(PALETTES_ROOT, txt_type),
-            title='Load preset file',
+            title='Save As...',
             parent=self,
             create=True
         )
@@ -171,12 +179,14 @@ class PaletteEditor(QtWidgets.QMainWindow):
             save_dict = {}
 
             for attr in attributes:
-                save_dict[attr] = self.buttons[attr]._rgb
+                save_dict[attr] = self.buttons[attr].rgb
 
             path = dialog.get_selected_path()
 
+            print (kk.MESSAGE.format('Warning: save action is not implemented yet.'))
+
     def delete_preset(self):
-        print 'delete preset'
+        print (kk.MESSAGE.format('Warning: not implemented yet.'))
 
     def clear_layout(self):
         count = self.lay.count()

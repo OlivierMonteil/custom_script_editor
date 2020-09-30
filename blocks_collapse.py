@@ -7,16 +7,16 @@ import re
 from PySide2 import QtWidgets, QtCore, QtGui
 
 from custom_script_editor import constants as kk
+from custom_script_editor import utils
 from custom_script_editor.multi_cursors import MultiCursorManager
 
 
 class CollapseWidget(QtWidgets.QWidget):
     """
-    Left-padding widget which will manage the CollapseButtons.
+    Left-padding-area widget which will manage the CollapseButtons.
     """
 
     offsetX = 2
-    txt_edit_zoomed = QtCore.Signal()
 
     def __init__(self, txt_edit):
         super(CollapseWidget, self).__init__(txt_edit)
@@ -33,40 +33,55 @@ class CollapseWidget(QtWidgets.QWidget):
         self.update_all()
 
     def connect_signals(self):
-        self.txt_edit.zoomIn = self.zoom_in_with_signal
-        self.txt_edit.zoomOut = self.zoom_out_with_signal
         self.txt_edit.textChanged.connect(self.update_all)
         # update position on vertical scrollbar changes
-        self.txt_edit.verticalScrollBar().valueChanged.connect(self.update_position)
-        self.txt_edit.verticalScrollBar().rangeChanged.connect(self.update_position)
-        self.txt_edit.verticalScrollBar().sliderMoved.connect(self.update_position)
+        self.vertical_bar().valueChanged.connect(self.update_position)
+        self.vertical_bar().rangeChanged.connect(self.update_all)
+        self.vertical_bar().sliderMoved.connect(self.update_position)
+
         # update on QTextEdit zoom in/out
-        self.txt_edit_zoomed.connect(self.on_zoom)
+        text_lay = self.txt_edit.findChild(QtGui.QAbstractTextDocumentLayout)
+        text_lay.documentSizeChanged.connect(self.on_zoom)
 
-    def zoom_in_with_signal(self, value):
-        self.txt_edit_zoomed.emit()
-        QtWidgets.QTextEdit.zoomIn(self.txt_edit, value)
-
-    def zoom_out_with_signal(self, value):
-        self.txt_edit_zoomed.emit()
-        QtWidgets.QTextEdit.zoomOut(self.txt_edit, value)
-
-    def on_zoom(self):
+    def on_zoom(self, *args):
         """
         Hide buttons if text is too small, else update their positions.
         """
 
-        size = self.txt_edit.font().pointSize()
-        if size < 6:
+        if CollapseButton.radius >= self.line_height():
             self.too_small_to_be_shown = True
         else:
             self.too_small_to_be_shown = False
 
         self.update_buttons()
 
+    def line_height(self):
+        metrics = QtGui.QFontMetrics(self.txt_edit.font())
+        return metrics.height() +metrics.lineSpacing()/2
+
+    def vertical_bar(self):
+        return self.txt_edit.verticalScrollBar()
+
     def update_all(self):
         self.update_position()      # update self.position
         self.update_buttons()       # update CollapseButtons
+
+    def on_collapse(self):
+        """
+        Update all and clear multi-cursors.
+        """
+
+        self.update_all()
+
+        button = self.sender()
+        if not button.is_collapsed():
+            return
+
+        multi_manager = self.txt_edit.findChild(MultiCursorManager)
+        if not multi_manager:
+            return
+
+        multi_manager.clear_cursors()
 
     def update_position(self, *args):
         """
@@ -187,7 +202,7 @@ class CollapseWidget(QtWidgets.QWidget):
 
         button = CollapseButton(block, self, collapsed)
         # update CollapseWidget on block collapse/expand
-        button.state_changed.connect(self.update_all)
+        button.collapsed.connect(self.on_collapse)
 
         button.show()
         button.update_position()
@@ -212,7 +227,7 @@ class CollapseButton(QtWidgets.QPushButton):
     QtGui.QTextBlock expand/collapse button.
     """
 
-    state_changed = QtCore.Signal()
+    collapsed = QtCore.Signal()
 
     colors = [
         QtGui.QColor(207, 228, 255, 100),
@@ -232,8 +247,9 @@ class CollapseButton(QtWidgets.QPushButton):
         super(CollapseButton, self).__init__(collapse_widget)
 
         self.block = block
+        self.collapse_widget = collapse_widget
         self.txt_edit = collapse_widget.txt_edit
-        self.collapsed_state = collapsed
+        self._is_collapsed = collapsed
 
         self.pending_block = None
         self.start = None
@@ -252,6 +268,9 @@ class CollapseButton(QtWidgets.QPushButton):
         metrics = QtGui.QFontMetrics(self.txt_edit.font())
         self.move(4, block_position.y() +2 +(metrics.height() -self.radius)/2)
 
+    def is_collapsed(self):
+        return self._is_collapsed
+
     def toggle_visibility(self):
         """
         Toggle text block visibility (show/hide all  QtGui.QTextBlocks under
@@ -261,12 +280,17 @@ class CollapseButton(QtWidgets.QPushButton):
         state without taking their indentation-level in account.
         """
 
+        # get scrollbar's position so it will be restored at the end of this function
+        v_scroolbar = self.collapse_widget.vertical_bar()
+        v_pos = v_scroolbar.sliderPosition()
+
         block = self.block
         start_indent_level = self.get_indent_level(block)
 
         self.pending_block = None       # used for line breaks
         self.start = None
         self.length = 0
+        self.block_count = 0
         state = None
 
         while True:
@@ -296,15 +320,18 @@ class CollapseButton(QtWidgets.QPushButton):
                 # break that preceeds the next block of text
                 break
 
+        # toggle button's aspect
+        self._is_collapsed = not self._is_collapsed
+
         # force the QTextEdit tobe properly updated
         self.update_block_area(self.start, self.length)
-        # toggle button's aspect
-        self.collapsed_state = not self.collapsed_state
         self.repaint()
 
-        # emit signal so the CollapseWidget will update too (some buttons may
-        # have to be hidden or moved)
-        self.state_changed.emit()
+        if self.is_collapsed():
+            self.collapsed.emit()
+
+        # restore scrollbar's position
+        v_scroolbar.setSliderPosition(v_pos)
 
     def set_pending_visibility(self, state):
         """
@@ -394,13 +421,13 @@ class CollapseButton(QtWidgets.QPushButton):
 
         painter = QtGui.QPainter(self)
         painter.setBrush(QtCore.Qt.transparent)
-        painter.setPen(self.colors[self.collapsed_state])
+        painter.setPen(self.colors[self._is_collapsed])
 
         painter.drawRect(QtCore.QRect(0, 0, self.radius, self.radius))
         # draw horizontal line
         painter.drawLine(3, self.radius/2, self.radius -3, self.radius/2)
 
-        if self.collapsed_state:
+        if self._is_collapsed:
             # draw vertical line
             painter.drawLine(self.radius/2, 3, self.radius/2, self.radius -3)
 
