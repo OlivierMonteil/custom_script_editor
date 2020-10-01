@@ -1,3 +1,7 @@
+"""
+GUI for palette editing, saving and applying.
+"""
+
 import os
 import json
 
@@ -24,6 +28,9 @@ WINDOW_OBJECT_NAME = 'CSE_paletteEditor'
 
 
 class PaletteEditor(QtWidgets.QMainWindow):
+    """
+    Main "Edit palettes" GUi.
+    """
 
     rule_types = ('log', 'mel', 'python')
 
@@ -155,10 +162,10 @@ class PaletteEditor(QtWidgets.QMainWindow):
                 self.display_palette(None, force_palette=(theme, content))
 
     def set_as_default(self):
-        print (kk.MESSAGE.format('Warning: not implemented yet.'))
+        print (kk.WARNING_MESSAGE.format('not implemented yet.'))
 
     def apply_preset(self):
-        print (kk.MESSAGE.format('Warning: not implemented yet.'))
+        print (kk.WARNING_MESSAGE.format('not implemented yet.'))
 
     def save_preset(self):
         txt_type = self.rules_box.currentText()
@@ -183,10 +190,10 @@ class PaletteEditor(QtWidgets.QMainWindow):
 
             path = dialog.get_selected_path()
 
-            print (kk.MESSAGE.format('Warning: save action is not implemented yet.'))
+            print (kk.WARNING_MESSAGE.format('save action is not implemented yet.'))
 
     def delete_preset(self):
-        print (kk.MESSAGE.format('Warning: not implemented yet.'))
+        print (kk.WARNING_MESSAGE.format('not implemented yet.'))
 
     def clear_layout(self):
         count = self.lay.count()
@@ -382,6 +389,9 @@ class ColorButton(QtWidgets.QPushButton):
 
 
 class PresetsDialog(QtWidgets.QDialog):
+    """
+    """
+
     def __init__(self, root_dir, title=None, parent=None, create=False):
         super(PresetsDialog, self).__init__(parent)
 
@@ -517,6 +527,7 @@ class PresetsDialog(QtWidgets.QDialog):
 
         return self.file_model.filePath(self.proxy_model.mapToSource(index))
 
+
 class ProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(self, view, root_dir, *args, **kwargs):
         super(ProxyModel, self).__init__(view, *args, **kwargs)
@@ -565,7 +576,7 @@ def closeExisting(maya_ui_qt):
         if widget.objectName() == WINDOW_OBJECT_NAME:
             widget.setParent(None)
             widget.close()
-            widget.deleteLater()    # avoids QMenu memory leak
+            widget.deleteLater()
             del widget
             break
 

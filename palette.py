@@ -1,3 +1,7 @@
+"""
+Color management for Synthax highglighters. These are no QtGui.QPalette objects.
+"""
+
 import os
 import json
 
@@ -22,6 +26,9 @@ PALETTES_ROOT = os.path.join(os.path.dirname(__file__), 'palettes')
 
 
 class Palette(object):
+    """
+    Base class for LogPalette, PythonPalette and MelPalette.
+    """
 
     specific_formats = {}
 
@@ -33,11 +40,22 @@ class Palette(object):
         self.padding = padding
 
     def apply_theme(self, widget, theme):
+        """
+        Args:
+            widget (QTextEdit)
+            theme (str)
+
+        Apply <theme>.json palette on <widget>.
+        """
+
         theme = self.root_type +'/' +theme if self.root_type else theme
         self.palette = get_palette(theme)
         self.set_stylesheet()
 
     def set_stylesheet(self):
+        """
+        Set self.widget's style, based on theme's colors.
+        """
         if self.padding:
             paddingLine = 'padding-left : {}px;'.format(kk.LEFT_PADDING)
         else:
@@ -67,6 +85,10 @@ class Palette(object):
         self.widget.setPalette(qpalette)
 
     def char_formatted(self):
+        """
+        Get Palette as {'pattern_name': QtGui.QTextCharFormat} dict.
+        """
+
         result_dict = {}
 
         for attr in self.palette or ():
@@ -81,13 +103,29 @@ class Palette(object):
 
         return result_dict
 
-    def get_color(self, key):
-        return tuple(self.palette[key])
+    def get_color(self, attr):
+        """
+        Args:
+            attr (str)
 
-    def set_color(self, key, rgb):
-        self.palette[key] = tuple(rgb)
+        Get dict's color at <attr> key.
+        """
 
-        if key in ('normal', 'background', 'highlight', 'highlight_text'):
+        return tuple(self.palette[attr])
+
+    def set_color(self, attr, rgb):
+        """
+        Args:
+            attr (str)
+            rgb (tuple or list)
+
+        Get dict's color at <attr> key.
+        """
+
+        self.palette[attr] = tuple(rgb)
+
+        # update stylesheet for attributes that are in use in it
+        if attr in ('normal', 'background', 'highlight', 'highlight_text'):
             self.set_stylesheet()
 
 
@@ -175,14 +213,3 @@ def get_palette(theme):
 
     with open(palette_file, 'r') as opened_file:
         return json.load(opened_file)
-
-
-
-if __name__ == '__main__':
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-
-    dialog = PaletteEditor('mel', 'default')
-    dialog.show()
-
-    sys.exit(app.exec_())

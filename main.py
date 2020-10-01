@@ -20,6 +20,7 @@ from custom_script_editor import keys
 from custom_script_editor import snippets
 from custom_script_editor import palette
 from custom_script_editor import palette_editor
+from custom_script_editor import utils
 from custom_script_editor import constants as kk
 from custom_script_editor.multi_cursors import MultiCursorManager
 from custom_script_editor.blocks_collapse import CollapseWidget, set_collapse_widget
@@ -329,13 +330,14 @@ def customize_script_editor(*args):
                     set_collapse_widget(txt_edit)
 
             except Exception as e:
-                print kk.MESSAGE.format('Error : {}'.format(e))
-                traceback.print_exc()
+                print kk.ERROR_MESSAGE.format(e)
+    			traceback.print_exc()
 
 
     add_custom_menus()
 
 
+@utils.catch_error
 def run():
     """
     (called by maya's userSetup.mel/py)
@@ -361,4 +363,4 @@ def run():
         mc.evalDeferred(customize_script_editor, lp=True)
         mc.evalDeferred(set_customize_on_tab_change, lp=True)
 
-    print (kk.MESSAGE.format('Success: activated.'))
+    print kk.SUCCESS_MESSAGE.format('activated.')

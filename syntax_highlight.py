@@ -21,6 +21,9 @@ BASE_MESSAGES = ['warning', 'success', 'info', 'error']
 
 
 class CustomHighlighter(QtGui.QSyntaxHighlighter):
+    """
+    Base class for LogHighlighter, PythonHighlighter and MelHighlighter.
+    """
 
     def __init__(self, text_edit):
         """
@@ -29,10 +32,6 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
         """
 
         self.text_edit = text_edit
-
-        # Seems that setting CustomHighlighter's parent is not enough to avoid
-        # the garbage collector, so we will add it to its parent attributes
-        text_edit.custom_highlighter = self
 
         QtGui.QSyntaxHighlighter.__init__(self, text_edit)
 
@@ -52,10 +51,18 @@ class CustomHighlighter(QtGui.QSyntaxHighlighter):
         self.rule.apply(line)
 
     def set_theme(self, theme):
+        """
+        Args:
+            theme (str)
+
+        Set theme's palette on highlighter (triggered by palette editor).
+        """
+
         self.palette.apply_theme(self.text_edit, theme)
         self.update_rule()
 
     def update_rule(self):
+        """ Update rule and force highlight to refresh. """
         self.rule.update()
         self.rehighlight()
 
@@ -408,6 +415,8 @@ class Rule(object):
                 self.setFormat(i-1, 2, self.styles['special'])
 
     def map_methods(self):
+        """ Simplify methods acces by creating aliases. """
+
         self.setFormat = self.highlighter.setFormat
         self.setCurrentBlockState = self.highlighter.setCurrentBlockState
         self.currentBlockState = self.highlighter.currentBlockState
@@ -494,10 +503,7 @@ class LogRule(Rule):
 
         # info lines with '[] msg:' at the start of the line
         rules += [
-            (
-                '^\s*\[\w+\]\s*(%s\s*:)' % x,
-                self.styles[x]
-            ) for x in BASE_MESSAGES
+            ('^\s*\[\w+\]\s*(%s\s*:)' % x, self.styles[x]) for x in BASE_MESSAGES
         ]
 
         return rules
@@ -569,7 +575,7 @@ class LogRule(Rule):
         Args:
             line (str)
 
-        Handle Tracebacks.
+        Handle Tracebacks (block state = 5).
         """
 
         # propagate previous line's state
@@ -634,12 +640,10 @@ class MelRule(Rule):
         # expressions between ``
         rules += [('(`.*`)', 1, self.styles['called_expr'])]
 
-        rules += [
-                    # set '.' on float back to numbers style
-                    ('\d+\.*\d+', 0, self.styles['numbers']),
-                    # set ',' back to normal
-                    (',', 0, self.styles['normal']),
-                 ]
+        # set '.' on float back to numbers style
+        rules += [('\d+\.*\d+', 0, self.styles['numbers'])]
+        # set ',' back to normal
+        rules += [(',', 0, self.styles['normal'])]
 
         return rules
 

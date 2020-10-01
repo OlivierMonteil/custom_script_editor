@@ -7,42 +7,19 @@ import json
 import os
 import re
 
-try:
-    from PySide2 import QtWidgets, QtCore, QtGui
-except ImportError:
-    from PySide import QtGui, QtCore
-    from PySide import QtGui as QtWidgets
+from PySide2 import QtWidgets, QtCore, QtGui
 
-try:
-    import maya.cmds as mc
-    from maya import mel
-    import maya.OpenMayaUI as OMUI
-except:
-    pass
+import maya.cmds as mc
+from maya import mel
+import maya.OpenMayaUI as OMUI
 
-try:
-    import shiboken2 as shiboken
-except ImportError:
-    import shiboken
-
-import traceback
+import shiboken2 as shiboken
 
 from custom_script_editor import constants as kk
+from custom_script_editor import utils
 
 
 CUSTOM_JSON = os.path.dirname(__file__).replace('\\', '/') +'/custom_snippets.json'
-
-
-def print_error(func):
-    def wrap(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-
-        except Exception as e:
-            print kk.MESSAGE.format('Error : {}'.format(e))
-            print traceback.format_exc()
-
-    return wrap
 
 
 class SnippetsHandler(QtCore.QObject):
@@ -194,7 +171,7 @@ class SnippetsHandler(QtCore.QObject):
             self.box.close()
         self.box = None
 
-    @print_error
+    @utils.catch_error
     def get_custom_snippets(self, line_to_key):
         """
         Args:
@@ -241,7 +218,7 @@ class SnippetsHandler(QtCore.QObject):
 
         return []
 
-    @print_error
+    @utils.catch_error
     def custom_words(self):
         """
         Returns:
@@ -257,7 +234,7 @@ class SnippetsHandler(QtCore.QObject):
         except:
             return []
 
-    @print_error
+    @utils.catch_error
     def get_exception_snippets(self, line_to_key):
         """
         Args:
@@ -284,7 +261,7 @@ class SnippetsHandler(QtCore.QObject):
 
         return sorted([x +' as e:' for x in errors])
 
-    @print_error
+    @utils.catch_error
     def get_snippets(self, line, i, key):
         """
         Args:
@@ -329,7 +306,7 @@ class SnippetsHandler(QtCore.QObject):
 
         return matching
 
-    @print_error
+    @utils.catch_error
     def get_super_snippets(self, word):
         """
         Args:
@@ -384,7 +361,7 @@ class SnippetsHandler(QtCore.QObject):
         text = self.text_edit.toPlainText()
         return [x for x in re.findall('[\w]+', text) if len(x) >3]
 
-    @print_error
+    @utils.catch_error
     def get_modules_snippets(self):
         """
         Returns:

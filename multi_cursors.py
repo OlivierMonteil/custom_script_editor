@@ -40,7 +40,6 @@ class MultiCursorManager(QtCore.QObject):
         super(MultiCursorManager, self).__init__(parent)
 
         self.apply_padding = apply_padding
-        self.multi_triggered = False
         self.txt_edit = None
         self.cursors = []
         self.multi_cursor = []

@@ -18,7 +18,11 @@ WORD_WRAP_BOX_NAME = 'WordWrapBox'
 INF_HEIGHT = 5000
 INF_WIDTH = 10000
 
-MESSAGE = '# [Custom Script Editor]   {} #'
+MESSAGE_PATTERN = '# [Custom Script Editor] {} : {} #'
+SUCCESS_MESSAGE = MESSAGE_PATTERN.format('Success', '{}')
+WARNING_MESSAGE = MESSAGE_PATTERN.format('Warning', '{}')
+ERROR_MESSAGE = MESSAGE_PATTERN.format('Error', '{}')
+INFO_MESSAGE = MESSAGE_PATTERN.format('Info', '{}')
 
 LEFT_PADDING = 20
 
