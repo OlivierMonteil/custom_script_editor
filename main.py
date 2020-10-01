@@ -327,11 +327,11 @@ def customize_script_editor(*args):
                     mcursors_handle.install(txt_edit)
 
                 if child_class_needed(txt_edit, CollapseWidget):
-                    set_collapse_widget(txt_edit)
+                	set_collapse_widget(txt_edit)
 
             except Exception as e:
-                print kk.ERROR_MESSAGE.format(e)
-    			traceback.print_exc()
+            	print kk.ERROR_MESSAGE.format(e)
+            	traceback.print_exc()
 
 
     add_custom_menus()

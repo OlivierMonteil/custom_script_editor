@@ -23,5 +23,3 @@ class Human(foo.bar):
 
 if __name__ == '__main__':
     toto = Human('Toto')
-
-# Highlighted line #

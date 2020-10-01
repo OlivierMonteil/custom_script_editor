@@ -12,5 +12,3 @@ Traceback (most recent call last):
   File "toto.py", line 123, in get_titi_from_toto
     if Toto.titi() is None:
 # AttributeError: 'Toto' object has no attribute 'titi' #
-
-// Highlighted line //

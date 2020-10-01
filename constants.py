@@ -53,7 +53,9 @@ SPECIAL_CHARS += u'\xd1\xd2\xd3\xd4\xd5\xd6\xd8\xd9\xda\xdb\xdc\xdd\xde'
 
 COLLAPSIBLE_PATTERNS = [
     'def ',
-    'class '
+    'class ',
+    'proc ',
+    'global proc '
 ]
 
             #######################################################
