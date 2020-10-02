@@ -14,7 +14,7 @@ if not ROOT in sys.path:
 from custom_script_editor.multi_cursors import MultiCursorManager
 from custom_script_editor.syntax_highlight import PythonHighlighter
 from custom_script_editor.keys import KeysHandler
-from blocks_collapse import set_collapse_widget
+# from blocks_collapse import set_collapse_widget
 
 SAMPLE_FILE = os.path.join(os.path.dirname(__file__), 'blocks_collapse.py')
 
@@ -44,11 +44,11 @@ class MultiEditWindow(QtWidgets.QWidget):
         self.txt_edit.installEventFilter(key_handle)
 
         # install MultiCursorManager filterEvent on QTextEdit
-        mcursors_handle = MultiCursorManager(self.txt_edit)
+        mcursors_handle = MultiCursorManager(self.txt_edit, apply_padding=True)
         mcursors_handle.install(self.txt_edit)
 
-        # install MultiCursorManager filterEvent on QTextEdit
-        set_collapse_widget(self.txt_edit)
+        # # install Collapsible widgets on QTextEdit
+        # set_collapse_widget(self.txt_edit)
 
 
 class MultiEditText(QtWidgets.QTextEdit):

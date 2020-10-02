@@ -323,7 +323,7 @@ def customize_script_editor(*args):
 
                 # install MultiCursorManager filterEvent on QTextEdit if not already installed
                 if child_class_needed(txt_edit, MultiCursorManager):
-                    mcursors_handle = MultiCursorManager(txt_edit)
+                    mcursors_handle = MultiCursorManager(txt_edit, )
                     mcursors_handle.install(txt_edit)
 
                 if child_class_needed(txt_edit, CollapseWidget):
